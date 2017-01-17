@@ -1,3 +1,6 @@
+*** TODO: Improve documentation, fix some sketchy things going on in here ***
+
+
 AutoArxiv will return a daily email listing of new articles, ordered
 by relevance to a user's reading preferences. It will use an algorithm 
 that uses a regression convnet with Latent Dirilecht Allocation input. 
@@ -31,55 +34,42 @@ of topics. This will be one of the parameters.
 The network application that will be used is the Microsoft CNTL
 
 The current model that will be used is a five layer convolutional neural network. 
-The input will be an article, or perhaps its abstract, so either a length of 2000 or 200 in 
-one dimension, and then the size of the topics (1000) along with punctuation, stopwords,
-and numerical figures. <period>, <comma>, <semicolon>, <number>, <unk>, along with the 19 most 
-common stop words will fill the remaining 24 positions. 
+The input will be an article, or perhaps its abstract, so a length of 20000 in 
+one dimension, and then the size of the topics (1024). Stopwords, figures, punctuation
+and etc are to be ignored under the assumption that such details ultimately matter
+less than content figures. 
 
-The filters we use will be (1024 x 2-5), as the input consists of one-hot sparse vectors.
-We will use 12 filters. There will be 3 1024x2 filters, 3 1024x3 filters, 3 1024x4 filers, 
-and 3 1024x5 filters. 
-This will result in 12 different sized vector outputs, which will be pooled to a uniform 
-size and convolved one final time with a single 3 length one dimensional filter. 
-The final result will be sent through a fully connected layer that gives a 
-regression output between 0 and 100, for relevance. 
-
-Articles in the user's reading list will be rated on the same scale, although for 
-convenience, all articles in the test user will be rated at 100. 
-
-With this network, every article in the corpus will be evaluated and manually checked
-for correctness. 
+As topic models represent probability distributions of how words fit in topics, 
+the highest probability category for the word given. 
 
 In normal operation, the AutoArxiv will download new articles at a set time 
 every day and run the users' networks. A list of relevant articles above the 50 percent
 threshold will be sent via email to the users. 
 
-The "run" file will do the following:
+The "run.py" file will do the following:
 	1. Have a construction mode, which downloads the corpus and runs all the initial processing. 
 	2. Have a normal runtime mode, which fetches and sorts new papers either daily or when prompted. 
 		The test user will not have emails sent, but rather a debug output only. 
 	3. Will run the "fetch" file in mode 2,3,4
 	4. Will run the "process2" file for every user.
 
-The "maintain" file will do the following:
+The "maintain.py" file will do the following:
 	1. Add and remove users
 	2. Add and remove articles for users and their ratings. 
 	3. Ensure that users will not get previously selected files. 
 
-The "fetch" file will do the following:
+The "fetch.py" file will do the following:
 	1. Fetch articles to a numerical amount, by category. 
 	2. Fetch new articles, as in until an existing article is met. 
 	3. Fetch the pdfs of the articles and convert them to text. 
 	4. Tokenize the plaintext and keep track of the top 19 stopwords. 
 
-The "process1" file will do the following:
+The "process1.py" file will do the following:
 	1. Perform LDA for 1000 topics on the existing corpus 
-	2. Store a pseudo LDA representation based on the topic vectors combined with 
-		punctuation, stopwords, etc. 
+	2. Convert tokenized text into a vectorized LDA representation
 
-	"process1" will only run once
 
-The "process2" file will do the following:
+The "process2.py" file will do the following:
 	1. Given a user, train a convnet specifically for that user based on 
 		available regression training data.
 		a. If an article is trained upon and the predicted rating has also
@@ -87,12 +77,13 @@ The "process2" file will do the following:
 		b. If an article is trained upon but the predicted rating is not
 			current, then use it. 
 		c. Otherwise, train on the preferences. 
-
+		*** Only the top some number of articles will be trained, according to 
+			tf-idf. This will reduce
 	2. Given a set of ArxivId's and user, evaluate the user's predicted
 		preference. 
 	3. Store newly sorted articles in Current after clearing it. 
 
-The "relay" file will do the following: 
+The "relay.py" file will do the following: 
 	1. Given a non-empty Current table, for non test users, 
 		collect them and generate a string with hyperlinks to be sent via email
 		to the users. 
@@ -101,7 +92,7 @@ The "relay" file will do the following:
 		adds and removes articles and user ratings to the database, returns a user's libary, or
 		a sorted listing.
 
-The "dbwrapper" file will do the following:
+The "dbwrapper.py" file will do the following:
 	1. Interact with the database using "sqlite3" in a more conveninent manner
 	2. Be able to add and remove rows to tables
 	3. Be able to retrieve rows from tables with filered queries.
@@ -109,18 +100,21 @@ The "dbwrapper" file will do the following:
 The general schema for the databases will go as follows:
 
 Articles:
-	ArxivId Date URL Plaintext Tokenized PseudoLDA representation.
+	Arxiv_ID Date URL Abstract Category Author Plaintext Tokenized Topic_rep.
 
 Users:
-	UID Name email
+	UID Name email custom
 
 Preferences:
-	UID ArxivID rating trained?
+	UID ArxivID t_rating c_rating trained?
+
+#The trained? flag for Preferences highlights whether or not
+the user specified rating has been changed since the last convnet run. 
 
 Sorted:
-	UID ArxivID rating trained?
+	UID ArxivID t_rating c_rating 
 
 Current:
-	UID ArxvID rating
+	ArxvID
 
 The topic model will be stored in however the module used sees fit. 

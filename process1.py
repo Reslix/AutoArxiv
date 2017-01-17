@@ -44,7 +44,6 @@ class TopicModeler():
         else:
             self.ldamodel = None
             self.dictionary = None
-    #End
 
     def initialize(self):
         self.dictionary = corpora.dictionary.Dictionary(list(zip(*self.plaintext))[1])
@@ -59,7 +58,6 @@ class TopicModeler():
         #Ultimately, we want to leave one topic open as there may be words that don't exist.
         self.ldamodel = LdaModel(list(zip(*self.corpus))[1], num_topics=1023, id2word = self.dictionary, passes=7)
         self.ldamodel.save(os.path.join('lda','lda'))
-    #End
 
     def load_tfidf(self):
         self.tfidf = models.TfidfModel.load(os.path.join('tfidf','tfidf'))
@@ -114,10 +112,13 @@ class TopicModeler():
 
         print(len(ids),len(scores),len(averages))
         for i in range(len(dscores)):
-            self.c.execute("""INSERT OR REPLACE INTO preferences (uid, arxiv_id, t_rating, c_rating) 
-                VALUES (?,?,?,(SELECT c_rating FROM preferences WHERE uid=? AND arxiv_id=?))""",
-                (user, ids[i], averages[i], user, ids[i]))
-        self.connector.commit()
+            self.c.execute("""UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?""", (averages[i],user,ids[i]))
+            self.connector.commit()
+            if self.connector.changes() == 0:
+                self.c.execute("""INSERT OR REPLACE INTO preferences (uid, arxiv_id, t_rating, c_rating) 
+                    VALUES (?,?,?,(SELECT c_rating FROM preferences WHERE uid=? AND arxiv_id=?))""",
+                    (user, ids[i], averages[i], user, ids[i]))
+                self.connector.commit()
 
     def process_all_users(self):
         self.c.execute("""SELECT uid FROM users""")
@@ -136,7 +137,6 @@ class TopicModeler():
             self.c.execute("""UPDATE articles SET topic_rep=? WHERE arxiv_id=?;""",
                 (" ".join([str(x) for x in ldaed]), id))
             self.connector.commit()
-    #End
 
     def process_tokens_to_topics(self,tokens):
         id_list = []
@@ -150,4 +150,3 @@ class TopicModeler():
         topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
 
         return [x[1][0] if x[1] != [] else -1 for x in topics]
-    #End

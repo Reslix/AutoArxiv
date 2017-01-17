@@ -1,16 +1,7 @@
 """
-Here lies the structure for the agumented LDA input Convnets that
-are unique to each user. Here is how it will specificall work for now:
-
-The convnet will contain four layers. The first is the input layer, 
-and will have a large number (20+) filters of 1, 2, 3, 4 word lengths. 
-
-This should create a stacked one dimensional output. The next layer will 
-be with half the number of filters, and the one after that will have 
-half as well. The final layer will be a fully connected layer that 
-regresses to a single regression node. 
-
-The input to the network will be a 1024 x 10000. The input has 1 channel.
+Here lies the convnet model that will try to make sense of things. 
+Unfortuantely, I'm not sure if the network is interacting with the input
+the way I'm envisioning. Changes are sure to come here. 
 
 #The module that will be used is Microsofts CNTK, which I am experimenting with.
 
@@ -49,7 +40,6 @@ class NeuralModeler():
         self.articles = None
         self.model = None
         self.master_dict = None
-    #End
 
     def create_user_model_base(self, user):
         """
@@ -71,7 +61,6 @@ class NeuralModeler():
         model.compile('adagrad', loss='mean_squared_error', metrics=['accuracy'])
 
         model.save(os.path.join('models', str(user)))
-    #End
 
     def save_model(self, user):
         """
@@ -79,7 +68,6 @@ class NeuralModeler():
         """
         assert self.model != None, 'No model to be stored'
         self.model.save(os.path.join('models', str(user)))
-    #End
 
     def load_model(self, user):
         """
@@ -98,7 +86,6 @@ class NeuralModeler():
         for t,r in zip(topic_rep, ratings):
             print(t,r)
             self.model.fit(np.array(t).reshape(1,20000), np.array([r]), verbose=debug)
-    #End
 
     def train_user(self, uid):
         """
@@ -124,7 +111,6 @@ class NeuralModeler():
 
         shuffle(self.articles)
         self.train_current_model()
-    #End
 
     def train_all_users(self):
         """
@@ -176,11 +162,13 @@ class NeuralModeler():
 
         if save:
             for article,rating in results:
-                self.c.execute("""INSERT OR REPLACE INTO sorted (uid,arxiv_id,t_rating,c_rating) 
-                    VALUES (?,?,(SELECT t_rating FROM sorted WHERE uid=? AND arxiv_id=?),?)""", 
-                    (int(user), article, int(user), article, int(rating[0][0])))
+                self.c.execute("""UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?""",(int(rating[0][0]),int(user),article))
                 self.connector.commit()
-    #End
+                if self.connector.changes() == 0: 
+                    self.c.execute("""INSERT OR REPLACE INTO sorted (uid,arxiv_id,t_rating,c_rating) 
+                        VALUES (?,?,(SELECT t_rating FROM sorted WHERE uid=? AND arxiv_id=?),?)""", 
+                        (int(user), article, int(user), article, int(rating[0][0])))
+                    self.connector.commit()
 
     def process_all_users(self, save=True, debug=1, all=0):
         """
@@ -190,4 +178,3 @@ class NeuralModeler():
         users = list(self.c.fetchall())
         for user in users:
             self.process_user(str(user[0]), save, debug, all)
-    #End

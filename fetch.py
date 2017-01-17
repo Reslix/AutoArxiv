@@ -1,6 +1,8 @@
 
 """
 Fetches PDFs from the Arxiv, from all categories. 
+Borrows heavily from Andrej Kaparthy's Arxiv Sanity Preserver, 
+a better tool that can be found here: https://github.com/karpathy/arxiv-sanity-preserver
 """
 from nltk.stem.lancaster import LancasterStemmer
 import process1
@@ -38,7 +40,6 @@ def encode_feedparser_dict(d):
         return l
     else:
         return d
-#End
 
 def process_feed_entry(entry):
     encoded = encode_feedparser_dict(entry)
@@ -46,7 +47,6 @@ def process_feed_entry(entry):
     print(url)  
     encoded['shortid'] = url.split('/')[-1]
     return encoded
-#End
 
 class Fetcher():
     """
@@ -54,13 +54,15 @@ class Fetcher():
     """
     
     def __init__(self, number = 0, start = 0):
+        """
+        Initializer.
+        """
         self.wrapper = dbwrapper.dbwrapper()
         self.number = number
         self.start = start
         self.connection = sqlite3.connect('auto.sq3')
         self.c = self.connection.cursor()
         self.articles = []
-    #End    
 
     def fetch_links(self, query='all', care=1):
         """
@@ -107,8 +109,6 @@ class Fetcher():
                 time.sleep(1.0) ##### Some time
             start = end + 1
 
-
-    #End
     def update_current(self):
         """
         Just some housekeeping stuff
@@ -160,9 +160,12 @@ class Fetcher():
 
         print('%d/%d of %d downloaded ok.' % (numok, numtot, len(self.articles)))
         print('final number of papers downloaded okay: %d/%d' % (numok, len(self.articles)))
-    #End
 
     def pdf_to_txt(self):
+        """
+        Runs the linux tool 'pdftotext' to convert all the pdfs into text files, stored in
+        the /txt folder.
+        """
         for entry in self.articles:
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
             pdf_url = pdfs[0] + '.pdf'
@@ -211,4 +214,4 @@ class Fetcher():
                         text, " ".join([x for x in tokens]), " ".join(x for x in modeled)))
                     self.connection.commit()
 
-    #End
+
