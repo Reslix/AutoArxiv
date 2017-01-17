@@ -29,6 +29,7 @@ def fetch_missing(cap = 20000):
 	"""
 	global f
 	c.execute("""DELETE FROM articles""")
+	f.number = cap
 	f.fetch_links(care=0)
 	f.fetch_pdfs()
 	f.pdf_to_txt()
