@@ -18,8 +18,11 @@ Theano(http://deeplearning.net/software/theano/) or TensorFlow(https://www.tenso
 both recommend using CUDA capable graphics processors. 
 
 To setup:
+
 1. Clone the repo.
+
 2. Ensure you are using Python 3. A virtual environment is recommended. Install required modules using `pip install -r requirements.txt`
+
 3. Create directories named 'txt', 'pdf', 'models', 'lda', and 'tfidf'
 4. This is where things get messy. Open up the Python3 interpreter and run:
   ```
@@ -34,10 +37,13 @@ To setup:
   ```
   That last command will take a long time to run, as it performs the LDA training. 
 5. At this point, you will need to add a user to the database, which can either be manually done through the sqlite3 command line interface or by running `m.add_user(name,email)`
+
 6. For the time being, updating a user's article ratings is not too straightforward, but it is necessary to have a few preferences before running further training. Determine the article id's (including version) and update the ratings into the 'preferences' table in 'auto.sq3' either manually or by using `m.set_user_rating(arxiv_id,user_email,rating)`. The rating should be between 0 and 100, although that is not checked for. 
+
 7. Now, run `m.update_network`, which should take perhaps an hour or more. 
-8. To set up the email system (which is untested), edit `relay.py` and add credentials for a gmail account that
-is reserved for this program. 
+
+8. To set up the email system (which is untested), edit `relay.py` and add credentials for a gmail account that is reserved for this program. 
+
 9. Running `python run.py` from the shell should be all that is left for you to do. If you want to access the ratings for any set of articles outside of the arbitrarily proscribed times used, that will have to be manually achieved for the time being. 
 
 
