@@ -39,7 +39,7 @@ def add_user(user,email):
 	c.execute("""SELECT name from users""")
 	l = list(c.fetchall())
 	if not user in l:
-		c.execute("""INSERT INTO users (uid,name,email) VALUES (?,?,?)""", (len(l),user[0],email))
+		c.execute("""INSERT INTO users (uid,name,email) VALUES (?,?,?)""", (len(l),user,email))
 		connector.commit()
 	else:
 		print("User name already exists")
