@@ -56,7 +56,6 @@ class Fetcher():
         """
         Initializer.
         """
-        self.wrapper = dbwrapper.dbwrapper()
         self.number = number
         self.start = start
         self.connection = sqlite3.connect('auto.sq3')
@@ -68,7 +67,7 @@ class Fetcher():
         Fetches all the links in the given query parameters. 
         """
         base_url = "http://export.arxiv.org/api/query?"
-        categories = "cat:quant-ph+OR+cat:cs"
+        categories = "cat:q-bio+OR+cat:q-fin+OR+cat:math+OR+cat:stat+OR+cat:physics+OR+cat:quant-ph+OR+cat:cs"
         #base_query = "astro-ph cond-mat gr-qc hep-ex hep-lat hep-ph hep-th math-ph nlin nucl-ex nucl-th physics quant-ph"
         number = 0
         start = self.start
