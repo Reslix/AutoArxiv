@@ -24,13 +24,12 @@ class TopicModeler():
     This class wraps a topic modeling feature that vectorizes text tokens
     and then creates a topic model using LDA. There will be 1024 topic categories. 
     """
-    def __init__(self, preload = 0):
+    def __init__(self, connector, preload = 0):
         self.plaintext = []
-        self.connector = sqlite3.connect('auto.sq3')
-        self.c = self.connector.cursor()
+        self.c = connector
         swords = stop_words.get_stop_words('en')
         print("Loading text from db")
-        self.c.execute("""SELECT arxiv_id, text, token FROM articles""")
+        self.c.execute('''SELECT arxiv_id, text, token FROM articles''')
         self.articles = self.c.fetchall()
         print("Tokenizing text")
         for id,text,token in self.articles:
@@ -56,17 +55,21 @@ class TopicModeler():
 
         """
         #Ultimately, we want to leave one topic open as there may be words that don't exist.
+        print("Training topic model...")
         self.ldamodel = LdaModel(list(zip(*self.corpus))[1], num_topics=1023, id2word = self.dictionary, passes=7)
         self.ldamodel.save(os.path.join('lda','lda'))
+        print("Done!")
 
     def load_tfidf(self):
         self.tfidf = models.TfidfModel.load(os.path.join('tfidf','tfidf'))
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
 
     def create_tfidf_index(self):
+        print("Creating new tfidf index on articles")
         self.tfidf = models.TfidfModel(list(zip(*self.corpus))[1])
         self.tfidf.save(os.path.join('tfidf','tfidf'))
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
+        print("Done!")
 
     def process_user_tscore(self,user):
         """
@@ -74,8 +77,8 @@ class TopicModeler():
         will be compared. The conglomerate t_rating will be the average of tfidf rating * the percent
         rating the user assigned.
         """
-        print("Processing user tscores")
-        self.c.execute("""SELECT arxiv_id, t_rating, c_rating FROM preferences WHERE uid=?""", (user,))
+        print("Processing user tscores for user "+str(user))
+        self.c.execute('''SELECT arxiv_id, t_rating, c_rating FROM preferences WHERE uid=?''', (user,))
         articles = self.c.fetchall()
         print("Loaded user preferences")
         ids = list(zip(*self.corpus))[0]  #This is going for a very questionable index matching
@@ -97,7 +100,7 @@ class TopicModeler():
                 print("Should probably assign some preferences...")
             elif article[2] != None:
                 print("Assigning..."+article[0])
-                self.c.execute("""SELECT token FROM articles WHERE arxiv_id=?""", (article[0],))
+                self.c.execute('''SELECT token FROM articles WHERE arxiv_id=?''', (article[0],))
                 tokens = self.c.fetchone()[0].split()
                 minic = self.dictionary.doc2bow(tokens)
                 scores.append(self.index[self.tfidf[minic]])
@@ -112,16 +115,14 @@ class TopicModeler():
 
         print(len(ids),len(scores),len(averages))
         for i in range(len(dscores)):
-            self.c.execute("""UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?""", (averages[i],user,ids[i]))
-            self.connector.commit()
-            if self.connector.changes() == 0:
-                self.c.execute("""INSERT OR REPLACE INTO preferences (uid, arxiv_id, t_rating, c_rating) 
-                    VALUES (?,?,?,(SELECT c_rating FROM preferences WHERE uid=? AND arxiv_id=?))""",
-                    (user, ids[i], averages[i], user, ids[i]))
-                self.connector.commit()
+            print("Updating score for user "+user+" and articles "+ids[i]+" to " + str(averages[i]))
+            self.c.execute('''UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?''', (averages[i],user,ids[i]))
+            if self.c.rowcount() == 0:    
+                self.c.execute('''INSERT INTO preferences (uid, arxiv_id, t_rating) 
+                    VALUES (?,?,?)''', (user, ids[i], averages[i]))
 
     def process_all_users(self):
-        self.c.execute("""SELECT uid FROM users""")
+        self.c.execute('''SELECT uid FROM users''')
         users = list(self.c.fetchall())
         for user in users:
             self.process_user_tscore(user[0])
@@ -133,10 +134,9 @@ class TopicModeler():
 
         for id, tokens in self.plaintext:
             ldaed = self.process_tokens_to_topics(tokens)
-            print(ldaed)
-            self.c.execute("""UPDATE articles SET topic_rep=? WHERE arxiv_id=?;""",
-                (" ".join([str(x) for x in ldaed]), id))
-            self.connector.commit()
+            print("Updating topic representation of tokens for "+id)
+            self.c.execute('''UPDATE articles SET topic_rep=? WHERE arxiv_id=?;''',
+                (' '.join([str(x) for x in ldaed]), id))
 
     def process_tokens_to_topics(self,tokens):
         id_list = []
@@ -148,5 +148,5 @@ class TopicModeler():
             id_list.append((x,1))
 
         topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
-
         return [x[1][0] if x[1] != [] else -1 for x in topics]
+

@@ -4,7 +4,7 @@ Fetches PDFs from the Arxiv, from all categories.
 Borrows heavily from Andrej Kaparthy's Arxiv Sanity Preserver, 
 a better tool that can be found here: https://github.com/karpathy/arxiv-sanity-preserver
 """
-from nltk.stem.lancaster import LancasterStemmer
+from nltk.stem.snowball import SnowballStemmer
 import process1
 import sqlite3
 import nltk
@@ -52,23 +52,22 @@ class Fetcher():
     An object that encapsulates the functions that will fetch the urls and pdfs. 
     """
     
-    def __init__(self, number = 0, start = 0):
+    def __init__(self, connector, number=0, start=0):
         """
         Initializer.
         """
         self.number = number
         self.start = start
-        self.connection = sqlite3.connect('auto.sq3')
-        self.c = self.connection.cursor()
+        self.c = connector
         self.articles = []
 
     def fetch_links(self, query='all', care=1):
         """
         Fetches all the links in the given query parameters. 
         """
-        base_url = "http://export.arxiv.org/api/query?"
-        categories = "cat:q-bio+OR+cat:q-fin+OR+cat:math+OR+cat:stat+OR+cat:physics+OR+cat:quant-ph+OR+cat:cs"
-        #base_query = "astro-ph cond-mat gr-qc hep-ex hep-lat hep-ph hep-th math-ph nlin nucl-ex nucl-th physics quant-ph"
+        base_url = 'http://export.arxiv.org/api/query?'
+        categories = 'cat:q-bio+OR+cat:q-fin+OR+cat:math+OR+cat:stat+OR+cat:physics+OR+cat:quant-ph+OR+cat:cs'
+        #base_query = 'astro-ph cond-mat gr-qc hep-ex hep-lat hep-ph hep-th math-ph nlin nucl-ex nucl-th physics quant-ph'
         number = 0
         start = self.start
         c = True
@@ -78,17 +77,13 @@ class Fetcher():
             else:
                 iters = min(self.number - number, 20) 
             end = start + iters + 1
-            base_query = "search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}".format(categories, start, iters) #Keeping it this way to save energy.
+            base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories, start, iters) #Keeping it this way to save energy.
             url = base_url + base_query
             with urllib.request.urlopen(url) as response:
                 parsed = feedparser.parse(response)
 
-                count = 0
-                while len(parsed.entries) == 0 and count < 3:
-                    print("Zero entries retrieved, trying again")
-                    time.sleep(3.0) ######## Some time, longer interval
-                    parsed = feedparser.parse(response)
-                    count += 1
+                if len(parsed.entries) == 0:
+                    print("Zero entries retrieved")
 
                 for entry in parsed.entries:
                     entry = process_feed_entry(entry)
@@ -130,6 +125,7 @@ class Fetcher():
         timeout_secs = 10 # after this many seconds we give up on a paper
         numok = 0
         numtot = 0
+        bad = 0
         have = set(os.listdir('pdf')) # get list of all pdfs we already have
         for entry in self.articles:
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
@@ -141,7 +137,7 @@ class Fetcher():
 
             try:
                 if not basename in have:
-                    print ('fetching %s into %s' % (pdf_url, fname))
+                    print ("fetching %s into %s" % (pdf_url, fname))
                     req = urllib.request.urlopen(pdf_url, None, timeout_secs)
                     with open(fname, 'wb') as fp:
                         shutil.copyfileobj(req, fp)
@@ -151,13 +147,16 @@ class Fetcher():
                 numok+=1
 
             except Exception as e:
-                print('error downloading: ', pdf_url)
+                print("error downloading: ", pdf_url)
                 print(e)
-            if numok % 10 == 0:
-                time.sleep(1)
+                if bad == 4:
+                    print("Arxiv.org is mad, taking 5 minute nap")
+                    time.sleep(300)
+                    bad = 0
+                bad += 1
 
-        print('%d/%d of %d downloaded ok.' % (numok, numtot, len(self.articles)))
-        print('final number of papers downloaded okay: %d/%d' % (numok, len(self.articles)))
+        print("%d/%d of %d downloaded ok." % (numok, numtot, len(self.articles)))
+        print("final number of papers downloaded okay: %d/%d" % (numok, len(self.articles)))
 
     def pdf_to_txt(self):
         """
@@ -180,7 +179,7 @@ class Fetcher():
         also create the pesudo_LDA representation.
         """
         have = set(os.listdir('txt'))
-        stemmer = LancasterStemmer()
+        stemmer = SnowballStemmer('english')
         swords = stop_words.get_stop_words('en')
         if lda == 1:
             print("Chose to apply topic model during insert")
@@ -192,7 +191,7 @@ class Fetcher():
         for article in self.articles:
             if article['txtname'][4:] in have:
                 with open(article['txtname'],'r') as f:
-                    print('processing {0}: {1} for tokens and topics'.format(article['shortid'], article['title']))
+                    print("processing {0}: {1} for tokens and topics".format(article['shortid'], article['title']))
                     text = f.read().lower()
                     tokens = [stemmer.stem(x) for x in nltk.word_tokenize(text) if (not x in swords and re.match('\w',x))]
                     if topics != []:
@@ -210,6 +209,5 @@ class Fetcher():
                         ", ".join([x['term'] for x in article['tags']]),
                         ", ".join([x['name'] for x in article['authors']]),
                         text, " ".join([x for x in tokens]), " ".join(x for x in modeled)))
-                    self.connection.commit()
 
 

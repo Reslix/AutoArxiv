@@ -31,12 +31,11 @@ class NeuralModeler():
     """
     This class encapsulates all the functions revolving around the convnet.
     """
-    def __init__(self):
+    def __init__(self, connector):
         """
         Sets up a sqlite wrapper for some I/O operations.
         """
-        self.connector = sqlite3.connect('auto.sq3')
-        self.c = self.connector.cursor()
+        self.c = connector
         self.articles = None
         self.model = None
         self.master_dict = None
@@ -66,7 +65,6 @@ class NeuralModeler():
         """
         Stores the sequential model.
         """
-        assert self.model != None, 'No model to be stored'
         self.model.save(os.path.join('models', str(user)))
 
     def load_model(self, user):
@@ -79,9 +77,6 @@ class NeuralModeler():
         """
         Trains a loaded model.
         """
-        assert self.model != None, 'Need to load a model'
-        assert self.articles != [], 'Need to load user articles'
-
         arxiv_id, abstract, topic_rep, ratings = zip(*self.articles)
         for t,r in zip(topic_rep, ratings):
             print(t,r)
@@ -132,6 +127,7 @@ class NeuralModeler():
         for the particular user. This will either run on all articles in the database,
         or only articles in the 'current' table, which lists newly fetched articles.
         """
+        print("Feeding articles into user model for user " + str(user))
         results = []
         self.load_model(user)
         if self.master_dict == None:
@@ -150,7 +146,7 @@ class NeuralModeler():
                 print(topics)
                 results.append((article, self.model.predict(np.array(topics), verbose=debug)))
         else:
-            self.c.execute("""SELECT * FROM current""")
+            self.c.execute('''SELECT * FROM current''')
             current = self.c.fetchall()
             for article in current:
                 topics = [int(x) for x in self.master_dict[article[0]][1].split()]
@@ -162,19 +158,16 @@ class NeuralModeler():
 
         if save:
             for article,rating in results:
-                self.c.execute("""UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?""",(int(rating[0][0]),int(user),article))
-                self.connector.commit()
-                if self.connector.changes() == 0: 
-                    self.c.execute("""INSERT OR REPLACE INTO sorted (uid,arxiv_id,t_rating,c_rating) 
-                        VALUES (?,?,(SELECT t_rating FROM sorted WHERE uid=? AND arxiv_id=?),?)""", 
-                        (int(user), article, int(user), article, int(rating[0][0])))
-                    self.connector.commit()
+                self.c.execute('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]),int(user),article))
+                if self.c.rowcount() == 0:
+                    self.c.execute('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
+                        VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
 
     def process_all_users(self, save=True, debug=1, all=0):
         """
         Predicts article ratings for all users in the users table.
         """
-        self.c.execute("""SELECT uid FROM users""")
+        self.c.execute('''SELECT uid FROM users''')
         users = list(self.c.fetchall())
         for user in users:
             self.process_user(str(user[0]), save, debug, all)
