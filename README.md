@@ -1,7 +1,7 @@
 # AutoArxiv
 
 This is AutoArxiv, a project that I've spent my winter break on. It is meant 
-to download articles from Arxiv.org(https://arxiv.org/) and sort them according
+to download articles from [Arxiv.org](https://arxiv.org/) and sort them according
 to user relevance. For the purposes of learning, I decided to incorporate 
 LDA topic modeling and a Convolutional Neural Network (CNN wishes they were this useful) to see if they can achieve this. 
 
@@ -30,8 +30,8 @@ In total, the papers are tokenized, and painfully squeezed through an LDA model 
 
 First, be sure you have a computer that can handle the computations that will run. In my tests, 
 I used a corpus of 3000 articles (that took quite a bit of time). Running the LDA topic model on a 
-single core took more than 20 hours and used up a lot of RAM. The CNN model uses the Keras(https://github.com/fchollet/keras/tree/master/keras) framework, which can either use
-Theano(http://deeplearning.net/software/theano/) or TensorFlow(https://www.tensorflow.org/), which 
+single core took more than 20 hours and used up a lot of RAM. The CNN model uses the [Keras](https://github.com/fchollet/keras/tree/master/keras) framework, which can either use
+[Theano](http://deeplearning.net/software/theano/) or [TensorFlow](https://www.tensorflow.org/), which 
 both recommend using CUDA capable graphics processors. 
 
 To setup:
@@ -70,9 +70,9 @@ To setup:
 
 ## Acknowledgements 
 
-This project was partly inspired by Andrej Kaparthy's ArxivSanityPreserver(https://github.com/karpathy/arxiv-sanity-preserver), and I owe a lot to CS231n(http://cs231n.stanford.edu/), a course that was vital to my understanding of deep learning. 
+This project was partly inspired by [Andrej Kaparthy's](http://karpathy.github.io/) [ArxivSanityPreserver](https://github.com/karpathy/arxiv-sanity-preserver), and I owe a lot to [CS231n](http://cs231n.stanford.edu/), a course that was vital to my understanding of deep learning. 
 
-This project wouldn't have been possible without my boss, Dr. Charles Tahan(http://www.tahan.com/charlie/), who is the head of the Quantum Computing Group and a Technical Director at the [University of Maryland's Laboratory for Physical Science](http://www.lps.umd.edu/)
+This project wouldn't have been possible without my boss, [Dr. Charles Tahan](http://www.tahan.com/charlie/), who is the head of the Quantum Computing Group and a Technical Director at the [University of Maryland's Laboratory for Physical Science](http://www.lps.umd.edu/)
 
 ## Future
 
