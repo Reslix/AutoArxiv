@@ -2,12 +2,29 @@
 
 This is AutoArxiv, a project that I've spent my winter break on. It is meant 
 to download articles from Arxiv.org(https://arxiv.org/) and sort them according
-to user preference. For the purposes of learning, I decided to incorporate 
-LDA topic modeling and a Convolutional Neural Network to see if they can achieve this. 
+to user relevance. For the purposes of learning, I decided to incorporate 
+LDA topic modeling and a Convolutional Neural Network (CNN wishes they were this useful) to see if they can achieve this. 
 
 As I wrote this in a short amount of time, I haven't been able to test out many of the features
 or verify that the learning algorithms are doing what I want them to. I also didn't pay too much
 attention to proper software development practices, which I intend on rectifying in later versions.
+
+Originally, when I had just a few weeks of knowledge of neural networks and AI in general, I attempted to do something 
+with Recurrent Neural Networks (RNN), but the way I structured the data and perhaps the model itself resulted in worse results than randomly picking things. 
+
+Now that I have a slightly better idea of what is going on, I decided to ditch RNNs in favor of
+CNNs due to the nature of the Natural Language Processing (NLP) task. While there are certainly very important
+features in the sequential nature of language, for the purposes of determining relevance, just the presence of
+topics and their proximity to other topics should give a good enough view. If we were attempting to sort
+articles on whether the user agreed with the writing style (which was one of the original goals), then a RNN would
+be more suitable. 
+
+As I was rather traumatized by my first attempt, this time I tried my best to prioritize the performance of the
+neural model. I decided that topic modeling would help reduce the dimensionality of the data without much loss of information. Topic modeling is typically used to describe documents according to their ratio of 'topics', which are essentially collections of words that have high statistical correlation of appearance. Theoretically, with a large and well constructed corpus, these topics would be able to account for all the variation in terms for single concepts. Whether that actually happens is yet to be seen in this case, but you can imagine how useful it would be when every paper wants to invent its own language for describing things. 
+
+Considering all that, what the CNN does is create a nonlinear model for describing the interactions of topics in a document. Instead of saying that a paper is about 'X' because the percentage of 'X' is greater than the percentage of 'Y' and 'Z', we can say that a paper is about 'W' because the 'X' has a certain spatial and numerical relationship with 'Y' and 'Z', which is similar to how 'X' interacts with 'T' and 'U', but not when it's with 'A'. Ultimately, this is transformed into a quantitative feature that is hopefully useful to us. 
+
+In total, the papers are tokenized, and painfully squeezed through an LDA model with around a thousand topics. Compared to having an input vector with dimensions in the tens of thousands, this is very small. The CNN has an embedding layer and four convolutional layers, each with dozens of filters, and ends with two fully connected layers. Each user has their own model, which is shoddily pretrained on a Term Frequency Inverse Document Frequency (TF-IDF) sorted list. The idea is that the performance of the CNN model will be no worse than just doing some linear searches, and that the more papers the user labels, the more accurate the model will be. 
 
 ## Setup
 
@@ -21,15 +38,19 @@ To setup:
 
 1. Clone the repo.
 
-2. Ensure you are using Python 3. A virtual environment is recommended. Install required modules using `pip install -r requirements.txt`
+2. Ensure you are using Python 3. A virtual environment is recommended. Install required modules using `pip install -r requirements.txt`. Pip is absolutely awful with this, so it probably won't work. Instead, you'll have to install the packages in a specific order manually, starting with `numpy`, then `scipy`, and then `gensim`. Before installing `h5py`, install `Cython`.
 
 3. Create directories named 'txt', 'pdf', 'models', 'lda', and 'tfidf'
 4. This is where things get messy. Open up the Python3 interpreter and run:
   ```
   import maintain as m    # A hodgepodge file of functions
+  
   m.create_tables()
   
+  m.fix_nltk_package() # Need to download the 'punkt' package for nltk
+  
   m.fetch_missing(cap= whatever you feel your article limit is)
+  
   # The above may need to be run a few times to get all the articles down. 
   # Arxiv also may temporarily block you from downloading things
   
@@ -40,11 +61,11 @@ To setup:
 
 6. For the time being, updating a user's article ratings is not too straightforward, but it is necessary to have a few preferences before running further training. Determine the article id's (including version) and update the ratings into the 'preferences' table in 'auto.sq3' either manually or by using `m.set_user_rating(arxiv_id,user_email,rating)`. The rating should be between 0 and 100, although that is not checked for. 
 
-7. Now, run `m.update_network`, which should take perhaps an hour or more. 
+7. Now, run `m.update_network()`, which should take perhaps an hour or more. 
 
 8. To set up the email system (which is untested), edit `relay.py` and add credentials for a gmail account that is reserved for this program. 
 
-9. Running `python run.py` from the shell should be all that is left for you to do. If you want to access the ratings for any set of articles outside of the arbitrarily proscribed times used, that will have to be manually achieved for the time being. 
+9. Running `python run.py` from the shell should be all that is left for you to do. If you want to access the ratings for any set of articles outside of the arbitrary times used, that will have to be manually achieved for the time being. 
 
 
 ## Acknowledgements 
@@ -52,3 +73,7 @@ To setup:
 This project was partly inspired by Andrej Kaparthy's ArxivSanityPreserver(https://github.com/karpathy/arxiv-sanity-preserver), and I owe a lot to CS231n(http://cs231n.stanford.edu/), a course that was vital to my understanding of deep learning. 
 
 This project wouldn't have been possible without my boss, Dr. Charles Tahan(http://www.tahan.com/charlie/), who is the head of the Quantum Computing Group and a Technical Director at the [University of Maryland's Laboratory for Physical Science](http://www.lps.umd.edu/)
+
+## Future
+
+I still hope to give
