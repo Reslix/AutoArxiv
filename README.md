@@ -76,4 +76,4 @@ This project wouldn't have been possible without my boss, Dr. Charles Tahan(http
 
 ## Future
 
-I still hope to give
+I still hope to give RNNs a chance, once I am more familiar with this field in general. Implementing them will require a little bit more than just swapping in some LSTM layers into the model, as the data will probably have to be augmented with the stop-words and punctuation I filtered out.
