@@ -72,7 +72,7 @@ To setup:
 
 This project was partly inspired by [Andrej Kaparthy's](http://karpathy.github.io/) [ArxivSanityPreserver](https://github.com/karpathy/arxiv-sanity-preserver), and I owe a lot to [CS231n](http://cs231n.stanford.edu/), a course that was vital to my understanding of deep learning. 
 
-This project wouldn't have been possible without my boss, [Dr. Charles Tahan](http://www.tahan.com/charlie/), who is the head of the Quantum Computing Group and a Technical Director at the [University of Maryland's Laboratory for Physical Science](http://www.lps.umd.edu/)
+This project wouldn't have been possible without my boss, [Dr. Charles Tahan](http://www.tahan.com/charlie/), who is the head of the Quantum Computing Group and a Technical Director at the [University of Maryland's Laboratory for Physical Sciences](http://www.lps.umd.edu/)
 
 ## Future
 
