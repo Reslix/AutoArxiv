@@ -60,7 +60,7 @@ class Fetcher():
         self.start = start
         self.c = connector
         self.articles = []
-
+        self.mirror_list = ['export','lanl','es','in','de','cn']
     def fetch_links(self, query='all', care=1):
         """
         Fetches all the links in the given query parameters. 
@@ -127,7 +127,7 @@ class Fetcher():
         timeout_secs = 10 # after this many seconds we give up on a paper
         numok = 0
         numtot = 0
-        bad = 0
+        mirror_index = 0
         have = set(os.listdir('pdf')) # get list of all pdfs we already have
         for entry in self.articles:
             numtot += 1
@@ -135,7 +135,7 @@ class Fetcher():
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
             print(pdfs)
             assert len(pdfs) == 1
-            pdf_url = pdfs[0] + '.pdf'
+            pdf_url = (pdfs[0] + '.pdf').replace('http://','https://' + self.mirror_list[mirror_index] +'.')
             basename = pdf_url.split('/')[-1]
             fname = os.path.join('pdf', basename)
 
@@ -151,14 +151,17 @@ class Fetcher():
                 numok+=1
 
             except Exception as e:
-                print("error downloading: ", pdf_url)
+                print("Error downloading: ", pdf_url)
                 print(e)
-                if bad == 50:
-                    print("Arxiv.org is mad, taking 5 minute nap")
-                    time.sleep(300)
-                    bad = 0
-                bad += 1
-
+                for i in range(len(self.mirror_list)-1):
+                    mirror_index = (mirror_index + 1) % len(self.mirror_list)
+                    print("Trying again with new mirror")
+                    pdf_url = (pdfs[0] + '.pdf').replace('http://','https://' + self.mirror_list[mirror_index] +'.')
+                    req = urllib.request.urlopen(pdf_url, None, timeout_secs)
+                    with open(fname, 'wb') as fp:
+                        shutil.copyfileobj(req, fp)
+                    time.sleep(0.1 + random.uniform(0,0.2))
+                    
         print("%d/%d of %d downloaded ok." % (numok, numtot, len(self.articles)))
         print("final number of papers downloaded okay: %d/%d" % (numok, len(self.articles)))
 
