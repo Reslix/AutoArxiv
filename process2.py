@@ -125,7 +125,7 @@ class NeuralModeler():
             self.train_user(str(user[0]))
             self.save_model(str(user[0]))
 
-    def process_user(self, user, save=True, debug=1, all=0):
+    def process_user(self, user, save=True, debug=0, all=0):
         """
         This will run the prediction algorithm on all articles that haven't been trained
         for the particular user. This will either run on all articles in the database,

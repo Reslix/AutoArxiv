@@ -161,7 +161,7 @@ class Fetcher():
                     with open(fname, 'wb') as fp:
                         shutil.copyfileobj(req, fp)
                     time.sleep(0.1 + random.uniform(0,0.2))
-                    
+
         print("%d/%d of %d downloaded ok." % (numok, numtot, len(self.articles)))
         print("final number of papers downloaded okay: %d/%d" % (numok, len(self.articles)))
 
@@ -207,7 +207,7 @@ class Fetcher():
                         modeled = []
 
                     print("Inserting into articles table")
-                    self.c.execute("""INSERT INTO current VALUES (?)""", (articles['shortid'],))
+                    self.c.execute("""INSERT INTO current VALUES (?)""", (article['shortid'],))
                     self.c.execute("""INSERT INTO articles 
                         (arxiv_id,date,url,title,abstract,category,author,text,token,topic_rep) 
                         VALUES (?,?,?,?,?,?,?,?,?,?);""", 

@@ -25,7 +25,7 @@ trained = False
 ldaed = False
 updated = False
 while True:
-    try:
+    
         now = datetime.now().strftime('%H%M')
 
         #This part does the new article fetching
@@ -58,9 +58,9 @@ while True:
             n.process_all_users(all=0)
             articles = {}
             for (article,) in current:
-                c.execute('''SELECT uid,rating FROM sorted WHERE arxiv_id=?''', article)
+                c.execute('''SELECT uid,c_rating FROM sorted WHERE arxiv_id=?''', (article,))
                 for user,rating in c.fetchall():
-                    c.execute('''SELECT title,url FROM articles WHERE arxiv_id=?''',article)
+                    c.execute('''SELECT title,url FROM articles WHERE arxiv_id=?''', (article,))
                     title,link = c.fetchall()[0]
                     if not user in articles:
                         articles[user] = [(article, rating, title, link)]
@@ -69,9 +69,9 @@ while True:
 
             print("Relaying listings to users")
             for user in articles:
-                c.execute('''SELECT email FROM users WHERE uid=?''')
-                email = f.fetchone()[0]
-                articles[user].sort(key=lambda x: x[1], descending=True)
+                c.execute('''SELECT email FROM users WHERE uid=?''', (user,))
+                email = c.fetchone()[0]
+                articles[user].sort(key=lambda x: x[1], reverse=True)
                 e.send_listing(email,articles[user])
             fetched = True
 
@@ -93,7 +93,3 @@ while True:
 
         print("Sleeping for 5 minutes")
         time.sleep(300)
-
-    except Exception:
-        #This is all one big bad dream
-        pass

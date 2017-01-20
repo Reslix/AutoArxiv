@@ -35,6 +35,7 @@ class Emailer():
             self.server = smtplib.SMTP('smtp.gmail.com', 587)
             self.limit = 500 #Gmail limits me to this many free sent messages, probably to prevent spam. 
             self.server.ehlo()
+            self.server.starttls()
             self.server.login(self.email, self.passwd)
 
         except:  
