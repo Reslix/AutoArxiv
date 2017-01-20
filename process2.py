@@ -18,6 +18,7 @@ it appears that CNTK is attempting to follow keras' model of organization.
 #from cntk import Trainer
 #import cntk as C
 from random import shuffle
+
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import load_model
 from keras.models import Sequential
@@ -26,6 +27,8 @@ from keras.layers.convolutional import Convolution2D, Convolution1D
 import numpy as np
 import sqlite3
 import os
+from keras import backend as K
+K.set_image_dim_ordering('th')
 
 class NeuralModeler():
     """
@@ -48,12 +51,12 @@ class NeuralModeler():
         all the regressions and have users be a separate parameter at the input layer.
         """
         model = Sequential()
-        model.add(Embedding(1024, 128, input_length=20000, init='glorot_uniform'))
+        model.add(Embedding(1024, 128, input_length=20000))
         model.add(Reshape((1, 20000, 128)))
-        model.add(Convolution2D(nb_filter=128, init='glorot_uniform', nb_col=128, nb_row=5, activation='relu'))
-        model.add(Convolution2D(nb_filter=64, init='glorot_uniform', nb_col=1, nb_row=5, activation='relu'))
-        model.add(Convolution2D(nb_filter=64, init='glorot_uniform', nb_col=1, nb_row=5, activation='relu'))
-        model.add(Convolution2D(nb_filter=32, init='glorot_uniform', nb_col=1, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=128, nb_col=128, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=64, nb_col=1, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=64, nb_col=1, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
         model.add(Flatten())
         model.add(Dense(128))
         model.add(Dense(1))
@@ -90,6 +93,7 @@ class NeuralModeler():
         The topic_rep format of the articles is already mostly formatted into what we need.
         """
         self.c.execute("""SELECT arxiv_id,t_rating,c_rating FROM preferences WHERE uid=?""", (uid,))
+        preferences = list(self.c.fetchall())
         shuffle(preferences)
         self.articles = []
         for entry in preferences:

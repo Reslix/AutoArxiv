@@ -71,11 +71,12 @@ class Fetcher():
         number = 0
         start = self.start
         c = True
+
         while number < self.number or c == True:
             if self.number == 0 and c == True:
-                iters = 20
+                iters = 25
             else:
-                iters = min(self.number - number, 20) 
+                iters = min(self.number - number, 25) 
             end = start + iters + 1
             base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories, start, iters) #Keeping it this way to save energy.
             url = base_url + base_query
@@ -93,7 +94,8 @@ class Fetcher():
                         self.articles.append(entry)
                     elif care == 1:
                         c = False
-
+                        break
+                        
                     number += 1
 
             if number >= self.number and self.number > 0: 
@@ -128,6 +130,8 @@ class Fetcher():
         bad = 0
         have = set(os.listdir('pdf')) # get list of all pdfs we already have
         for entry in self.articles:
+            numtot += 1
+            print(numtot)
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
             print(pdfs)
             assert len(pdfs) == 1
@@ -149,7 +153,7 @@ class Fetcher():
             except Exception as e:
                 print("error downloading: ", pdf_url)
                 print(e)
-                if bad == 4:
+                if bad == 50:
                     print("Arxiv.org is mad, taking 5 minute nap")
                     time.sleep(300)
                     bad = 0
@@ -200,7 +204,7 @@ class Fetcher():
                         modeled = []
 
                     print("Inserting into articles table")
-                    self.c.execute("""INSERT INTO current VALUES (?)""", articles['shortid'])
+                    self.c.execute("""INSERT INTO current VALUES (?)""", (articles['shortid'],))
                     self.c.execute("""INSERT INTO articles 
                         (arxiv_id,date,url,title,abstract,category,author,text,token,topic_rep) 
                         VALUES (?,?,?,?,?,?,?,?,?,?);""", 
