@@ -200,7 +200,7 @@ class Fetcher():
                         modeled = []
 
                     print("Inserting into articles table")
-
+                    self.c.execute("""INSERT INTO current VALUES (?)""", articles['shortid'])
                     self.c.execute("""INSERT INTO articles 
                         (arxiv_id,date,url,title,abstract,category,author,text,token,topic_rep) 
                         VALUES (?,?,?,?,?,?,?,?,?,?);""", 
