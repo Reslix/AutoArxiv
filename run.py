@@ -13,21 +13,23 @@ Fetches new papers.
 RUNS FOREVER
 """
 
-f = Fetcher()
-n = NeuralModeler()
-e = Emailer()
 c = m.c
+f = Fetcher(c)
+n = NeuralModeler(c)
+e = Emailer(c)
 #***TODO: add a configuration file
 t_count = 0
 l_count = 0
 fetched = False
 trained = False
 ldaed = False
+updated = False
 while True:
       now = datetime.now().strftime('%H%M')
 
       #This part does the new article fetching
       if '0500' <= now <= '0630' and fetched == False:
+            updated = False
             print('Fetching')
             t_count += 1
             l_count += 1
@@ -67,9 +69,10 @@ while True:
                   articles[user].sort(key=lambda x: x[1], descending=True)
                   e.send_listing(email,articles[user])
 
-      if '0400' <= now <= '0430':
+      if '0400' <= now <= '0430' and updated == False:
             print('updating emails')
-            e.recieve_emails()
+            e.receive_emails()
+            updated = True
 
       if '0630' <= now <= '0640':
             fetched = False
@@ -84,5 +87,6 @@ while True:
             m.update_topics_and_t()
             print("Updating all ANN models")
             m.update_network()
+
       print("Sleeping for 5 minutes")
       time.sleep(300)

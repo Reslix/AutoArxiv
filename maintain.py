@@ -36,7 +36,7 @@ class DbWrapper():
 			self.execute(statement,tup)
 	def rowcount(self):
 		return self.c.rowcount
-		
+
 	def fetchall(self):
 		return self.c.fetchall()
 
@@ -86,12 +86,11 @@ def set_user_ratings(l):
 def set_user_rating(arxivid,user,rating):
 	c.execute('''SELECT uid FROM users WHERE email=?''', (user,))
 	uid = c.fetchone()[0]
+	print("Updating ratings for user " + str(uid))
 	c.execute('''UPDATE preferences SET c_rating=? WHERE uid=? AND arxiv_id=?''',(rating,uid,arxivid))
-	
-	if connector.changes() == 0:
-		c.execute('''INSERT OR REPLACE preferences (uid,arxiv_id,t_rating,c_rating) 
-			VALUES (?,?,(SELECT t_rating FROM preferences 
-			WHERE uid=? AND arxiv_id=?),?)''', (uid, arxivid, uid, arxivid, rating))
+	if c.rowcount() == 0:
+		c.execute('''INSERT INTO preferences (uid,arxiv_id,c_rating) 
+			VALUES (?,?,?)''', (uid, arxivid, rating))
 
 def clear_current():
 	c.execute('''DELETE FROM current''')

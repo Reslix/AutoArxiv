@@ -32,7 +32,7 @@ class Emailer():
         Formats the sorted listing into some readable plaintext form. Hasn't been tested, so this will prove to be interesting.
         """
         try:  
-            self.server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            self.server = smtplib.SMTP('smtp.gmail.com', 587)
             self.limit = 500 #Gmail limits me to this many free sent messages, probably to prevent spam. 
             self.server.ehlo()
             self.server.login(self.email, self.passwd)
@@ -45,11 +45,13 @@ class Emailer():
         else:
             message = ""
             for i,msg in enumerate(listing):
-                message = message + str(i) + '. ' + str(msg[0]) + ', ' + str(msg[2]) + ', ' + str(msg[3]) + ', ' + str(msg[1]) + '|| \n'
+                message = message + str(msg[0]) + ', ' + str(msg[2]) + ', ' + str(msg[3]) + ', ' + str(msg[1]) + '|| \n'
+
         message = message + """To update your ratings for an article, send a new email to the server with the
                                 listing formatted as seen above, with new ratings replacing the old ones. Enclose
                                 text body in double paretheses (()) to assist with email parsing."""
-        self.server.sendmail(self.email,email, str(len(listing)) + " New listings, ordered by relevance", message)
+
+        self.server.sendmail(self.email,email, str(len(listing)) + " New listings, ordered by relevance\n" + message)
         print("Sent listing to " + email)
         self.server.quit()
 
@@ -75,16 +77,20 @@ class Emailer():
             self.rawmessage.append(msg)
 
         for message in self.rawmessage:
-            sender = re.search('<.*>',re.search('From: .+ <.+@.+>.*To',message.as_string()).group()).group()
+            message = message.as_string()
+            message = message.replace('\\n', ' ').replace('\\r', '')
+            sender = re.search('<.*?>',re.search('From: .+ <.+@.+>.*To', message).group()[:-1]).group()
             print(sender)
             sender = sender[1:-1]
-            commands = re.search('((.*))',message.as_string())
+            commands = re.search('\(\(.*?\)\)',message)
             if commands != None:
-                commands = commands.group()[2:-2].split('||')
+                commands = commands.group()[2:-2].split('\|\|')
                 for i in range(len(commands)):
-                    print(commands[i])
-                    commands[i] = commands[i].strip()
-                    command = commands[i].split(', ')
-                    m.set_user_rating(command[0],sender,command[1])
+                    commands[i] = commands[i].split()
+                    if len(commands[i]) >= 4:
+                        for x in range(len(commands[i])):
+                            commands[i][x].strip() 
+                            commands[i][x] = commands[i][x].replace(',','')
+                        m.set_user_rating(commands[i][0],sender,commands[i][3])
 
         self.mail.close()
