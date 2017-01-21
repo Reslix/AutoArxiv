@@ -51,7 +51,8 @@ class NeuralModeler():
         all the regressions and have users be a separate parameter at the input layer.
         """
         model = Sequential()
-        model.add(Embedding(1024, 128, input_length=20000))
+        #Used to be 1024, now 2000001
+        model.add(Embedding(2000001, 128, input_length=20000))
         model.add(Reshape((1, 20000, 128)))
         model.add(Convolution2D(nb_filter=128, nb_col=128, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=64, nb_col=1, nb_row=5, activation='relu'))
@@ -62,19 +63,19 @@ class NeuralModeler():
         model.add(Dense(1))
         model.compile('adagrad', loss='mean_squared_error', metrics=['accuracy'])
 
-        model.save(os.path.join('models', str(user)))
+        model.save(os.path.join('models', str(user)+'_nolda'))
 
     def save_model(self, user):
         """
         Stores the sequential model.
         """
-        self.model.save(os.path.join('models', str(user)))
+        self.model.save(os.path.join('models', str(user)+'_nolda'))
 
     def load_model(self, user):
         """
         Loads an already trained model.
         """
-        self.model = load_model(os.path.join('models', str(user)))
+        self.model = load_model(os.path.join('models', str(user)+'_nolda'))
 
     def train_current_model(self, debug=1):
         """

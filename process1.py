@@ -55,10 +55,13 @@ class TopicModeler():
 
         """
         #Ultimately, we want to leave one topic open as there may be words that don't exist.
+        """
         print("Training topic model...")
         self.ldamodel = LdaModel(list(zip(*self.corpus))[1], num_topics=1023, id2word = self.dictionary, passes=7)
         self.ldamodel.save(os.path.join('lda','lda'))
         print("Done!")
+        """
+        pass
 
     def load_tfidf(self):
         self.tfidf = models.TfidfModel.load(os.path.join('tfidf','tfidf'))
@@ -147,6 +150,7 @@ class TopicModeler():
                 x = -1
             id_list.append((x,1))
 
-        topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
-        return [x[1][0] if x[1] != [] else -1 for x in topics]
+        #topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
+        #return [x[1][0] if x[1] != [] else -1 for x in topics]
+        return id_list
 

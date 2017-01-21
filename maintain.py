@@ -12,7 +12,8 @@ from process1 import TopicModeler
 from process2 import NeuralModeler
 from fetch import Fetcher
 import time
-dbname = 'auto.sq3'
+
+dbname = 'autonolda.sq3'
 
 class DbWrapper():
 	"""
@@ -31,7 +32,7 @@ class DbWrapper():
 			self.connector.commit()
 
 		except sqlite3.OperationalError:
-			print("Database locked, trying again in 3s...")
+			print("Database error, trying again in 3s...")
 			time.sleep(3)
 			self.execute(statement,tup)
 	def rowcount(self):

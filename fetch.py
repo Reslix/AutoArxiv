@@ -200,7 +200,7 @@ class Fetcher():
                 with open(article['txtname'],'r') as f:
                     print("processing {0}: {1} for tokens and topics".format(article['shortid'], article['title']))
                     text = f.read().lower()
-                    tokens = [stemmer.stem(x) for x in nltk.word_tokenize(text) if (not x in swords and re.match('\w',x))]
+                    tokens = [stemmer.stem(x) for x in nltk.word_tokenize(text) if (re.match('\w',x))]
                     if topics != []:
                         modeled = topics.process_tokens_to_topics(tokens)
                     else:
