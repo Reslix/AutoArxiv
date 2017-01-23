@@ -8,14 +8,13 @@ For each article in the current table, a list of users and ratings
 are generated. Ratings higher than a certain threshold, which may 
 be customized later on, 
 """
-
-import smtplib
-from email.header import Header
-import imaplib
-import email
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.header import Header
 import maintain as m
+import imaplib
+import smtplib
+import email
 import re
 
 class Emailer():
@@ -55,7 +54,8 @@ class Emailer():
         msg['Subject'] = Header(str(len(listing)) + ' New listings, ordered by relevance', "utf-8")
 
         message = message + """\n\nTo update your ratings for an article, send a new email to the server with the
-                                listing formatted as seen above, with new ratings replacing the old ones. Enclose
+                                listing formatted as seen above, with new ratings replacing the old ones, and remove
+                                rows that you do not want to be stored as a preference. Enclose
                                 text body in double paretheses (()) to assist with email parsing."""
 
         self.server.sendmail(self.email,email, msg.as_string())

@@ -17,17 +17,18 @@ it appears that CNTK is attempting to follow keras' model of organization.
 #from cntk.ops.functions import load_model, relu,
 #from cntk import Trainer
 #import cntk as C
-from random import shuffle
-
+from keras.layers.convolutional import Convolution2D, Convolution1D
+from keras.layers import Dense, Embedding, Flatten, Reshape
 from keras.preprocessing.sequence import pad_sequences
+from keras.utils.visualize_util import plot
 from keras.models import load_model
 from keras.models import Sequential
-from keras.layers import Dense, Embedding, Flatten, Reshape
-from keras.layers.convolutional import Convolution2D, Convolution1D
+from keras import backend as K
+from random import shuffle
 import numpy as np
 import sqlite3
 import os
-from keras import backend as K
+
 K.set_image_dim_ordering('th')
 
 class NeuralModeler():
@@ -49,13 +50,15 @@ class NeuralModeler():
         to have their own network, although that may turn out to be impractical.
         For future updates, will explore the idea of having just one network give out
         all the regressions and have users be a separate parameter at the input layer.
+
+        Given the speed of training and processing, this article
         """
         model = Sequential()
         #Used to be 1024, now 2000001
         model.add(Embedding(2000001, 128, input_length=20000))
         model.add(Reshape((1, 20000, 128)))
-        model.add(Convolution2D(nb_filter=128, nb_col=128, nb_row=5, activation='relu'))
-        model.add(Convolution2D(nb_filter=64, nb_col=1, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=512, nb_col=128, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=128, nb_col=1, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=64, nb_col=1, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
         model.add(Flatten())
@@ -64,6 +67,7 @@ class NeuralModeler():
         model.compile('adagrad', loss='mean_squared_error', metrics=['accuracy'])
 
         model.save(os.path.join('models', str(user)+'_nolda'))
+        plot(model, to_file=(os.path.join('models', str(user)+'_nolda.png')))
 
     def save_model(self, user):
         """

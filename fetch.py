@@ -5,17 +5,17 @@ Borrows heavily from Andrej Kaparthy's Arxiv Sanity Preserver,
 a better tool that can be found here: https://github.com/karpathy/arxiv-sanity-preserver
 """
 from nltk.stem.snowball import SnowballStemmer
+import feedparser
+import stop_words
 import process1
 import sqlite3
-import nltk
-import stop_words
 import gensim
-import urllib
-import shutil
-import time
-import random
-import feedparser
 import pickle
+import random
+import shutil
+import urllib
+import nltk
+import time
 import os
 import re
 
@@ -61,7 +61,7 @@ class Fetcher():
         self.c = connector
         self.articles = []
         self.mirror_list = ['export','lanl','es','in','de','cn']
-    def fetch_links(self, query='all', care=1):
+    def fetch_links(self, query='all', care=1, iter=25):
         """
         Fetches all the links in the given query parameters. 
         """
@@ -74,9 +74,9 @@ class Fetcher():
 
         while number < self.number or c == True:
             if self.number == 0 and c == True:
-                iters = 25
+                iters = iter
             else:
-                iters = min(self.number - number, 25) 
+                iters = min(self.number - number, iter) 
             end = start + iters + 1
             base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories, start, iters) #Keeping it this way to save energy.
             url = base_url + base_query

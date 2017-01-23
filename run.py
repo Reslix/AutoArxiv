@@ -1,11 +1,15 @@
-from fetch import Fetcher
+"""
+This runs the scripts that fetch, decode, and sort the articles. 
+Currently, this runs on a daily cycle.
+"""
 from process2 import NeuralModeler
+from datetime import datetime
 from relay import Emailer
-import argparse
+from fetch import Fetcher
 import maintain as m
+import argparse
 import sqlite3
 import time
-from datetime import datetime
 """
 Runtime mode:
 
@@ -44,7 +48,7 @@ while True:
             m.clear_current()
             m.clear_sorted()
             print("Fetching new links...")
-            f.fetch_links()
+            f.fetch_links(iter=5)
             print("Downloading articles...")
             f.fetch_pdfs()
             f.pdf_to_txt()
