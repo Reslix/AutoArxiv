@@ -20,7 +20,6 @@ it appears that CNTK is attempting to follow keras' model of organization.
 from keras.layers.convolutional import Convolution2D, Convolution1D
 from keras.layers import Dense, Embedding, Flatten, Reshape
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils.visualize_util import plot
 from keras.models import load_model
 from keras.models import Sequential
 from keras import backend as K
@@ -67,7 +66,6 @@ class NeuralModeler():
         model.compile('adagrad', loss='mean_squared_error', metrics=['accuracy'])
 
         model.save(os.path.join('models', str(user)+'_nolda'))
-        plot(model, to_file=(os.path.join('models', str(user)+'_nolda.png')))
 
     def save_model(self, user):
         """
