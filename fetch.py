@@ -66,7 +66,7 @@ class Fetcher():
         Fetches all the links in the given query parameters. 
         """
         base_url = 'http://export.arxiv.org/api/query?'
-        categories = 'cat:q-bio+OR+cat:q-fin+OR+cat:math+OR+cat:stat+OR+cat:physics+OR+cat:quant-ph+OR+cat:cs'
+        categories = 'cat:q-bio+OR+cat:q-fin+OR+cat:math+OR+cat:stat+OR+cat:physics+OR+cat:quant-ph+OR+cat:CoRR'
         #base_query = 'astro-ph cond-mat gr-qc hep-ex hep-lat hep-ph hep-th math-ph nlin nucl-ex nucl-th physics quant-ph'
         number = 0
         start = self.start
@@ -135,7 +135,7 @@ class Fetcher():
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
             print(pdfs)
             assert len(pdfs) == 1
-            pdf_url = (pdfs[0] + '.pdf').replace('http://','https://' + self.mirror_list[mirror_index] +'.')
+            pdf_url = (pdfs[0] + '.pdf').replace('http://','http://' + self.mirror_list[mirror_index] +'.')
             basename = pdf_url.split('/')[-1]
             fname = os.path.join('pdf', basename)
 
@@ -154,13 +154,16 @@ class Fetcher():
                 print("Error downloading: ", pdf_url)
                 print(e)
                 for i in range(len(self.mirror_list)-1):
-                    mirror_index = (mirror_index + 1) % len(self.mirror_list)
-                    print("Trying again with new mirror")
-                    pdf_url = (pdfs[0] + '.pdf').replace('http://','https://' + self.mirror_list[mirror_index] +'.')
-                    req = urllib.request.urlopen(pdf_url, None, timeout_secs)
-                    with open(fname, 'wb') as fp:
-                        shutil.copyfileobj(req, fp)
-                    time.sleep(0.1 + random.uniform(0,0.2))
+                    try:
+                        mirror_index = (mirror_index + 1) % len(self.mirror_list)
+                        print("Trying again with new mirror")
+                        pdf_url = (pdfs[0] + '.pdf').replace('http://','http://' + self.mirror_list[mirror_index] +'.')
+                        req = urllib.request.urlopen(pdf_url, None, timeout_secs)
+                        with open(fname, 'wb') as fp:
+                            shutil.copyfileobj(req, fp)
+                        time.sleep(0.1 + random.uniform(0,0.2))
+                    except Exception as e:
+                        print("Try failed")
 
         print("%d/%d of %d downloaded ok." % (numok, numtot, len(self.articles)))
         print("final number of papers downloaded okay: %d/%d" % (numok, len(self.articles)))
