@@ -98,16 +98,19 @@ class NeuralModeler():
         shuffle(preferences)
         self.articles = []
         for entry in preferences:
+            print(entry)
             self.c.execute("""SELECT arxiv_id, abstract, topic_rep FROM articles WHERE arxiv_id=?""", (entry[0],))
-            result = list(self.c.fetchall())[0]
-            padded = pad_sequences([[int(x) for x in result[2].split()]], maxlen=20000, value=-1, padding='post', truncating='post')
-            if entry[2] != None:
-                result = (result[0], result[1], padded[0], entry[2])
-                for i in range(5):
+            result = list(self.c.fetchall())
+            if len(result) > 0:
+                result = result[0]
+                padded = pad_sequences([[int(x) for x in result[2].split()]], maxlen=20000, value=-1, padding='post', truncating='post')
+                if entry[2] != None:
+                    result = (result[0], result[1], padded[0], entry[2])
+                    for i in range(5):
+                        self.articles.append(result)
+                else:
+                    result = (result[0], result[1], padded[0], entry[1])
                     self.articles.append(result)
-            else:
-                result = (result[0], result[1], padded[0], entry[1])
-                self.articles.append(result)
 
         shuffle(self.articles)
         self.train_current_model()
@@ -136,7 +139,7 @@ class NeuralModeler():
         results = []
         self.load_model(user)
         if self.master_dict == None:
-            self.c.execute("""SELECT arxiv_id,abstract,topic_rep FROM articles""")
+            self.c.execute("""SELECT arxiv_id,title,topic_rep FROM articles""")
             master_list = list(self.c.fetchall())
             self.master_dict = {}
             while master_list != []:
@@ -148,25 +151,27 @@ class NeuralModeler():
             for article in akeys:
                 topics = [int(x) for x in self.master_dict[article][1].split()]
                 topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
-                print(topics)
-                results.append((article, self.model.predict(np.array(topics), verbose=debug)))
-        else:
-            self.c.execute('''SELECT * FROM current''')
-            current = self.c.fetchall()
-            for article in current:
-                topics = [int(x) for x in self.master_dict[article[0]][1].split()]
-                topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
-                results.append((article[0], self.model.predict(np.array(topics), verbose=debug)))
-
-        if debug == 1:
-            print(results)
-
-        if save:
-            for article,rating in results:
-                self.c.execute('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]),int(user),article))
+                rating = self.model.predict(np.array(topics), verbose=debug)
+                print(article, self.master_dict[article][0], rating)
+                results.append((article, rating))
+                self.c.execute('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
                 if self.c.rowcount() == 0:
                     self.c.execute('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
                         VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
+        else:
+            self.c.execute('''SELECT * FROM current''')
+            current = self.c.fetchall()
+            for (article,) in current:
+                topics = [int(x) for x in self.master_dict[article][1].split()]
+                topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
+                rating = self.model.predict(np.array(topics), verbose=debug)
+                print(article, self.master_dict[article][0], rating)
+                results.append((article, rating))
+                self.c.execute('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
+                if self.c.rowcount() == 0:
+                    self.c.execute('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
+                        VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
+               
 
     def process_all_users(self, save=True, debug=1, all=0):
         """

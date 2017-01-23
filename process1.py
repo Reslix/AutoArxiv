@@ -118,7 +118,7 @@ class TopicModeler():
 
         print(len(ids),len(scores),len(averages))
         for i in range(len(dscores)):
-            print("Updating score for user "+user+" and articles "+ids[i]+" to " + str(averages[i]))
+            print("Updating score for user "+str(user)+" and articles "+ids[i]+" to " + str(averages[i]))
             self.c.execute('''UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?''', (averages[i],user,ids[i]))
             if self.c.rowcount() == 0:    
                 self.c.execute('''INSERT INTO preferences (uid, arxiv_id, t_rating) 
@@ -148,7 +148,7 @@ class TopicModeler():
                 x = self.reverse_dict[token]
             except KeyError:
                 x = -1
-            id_list.append((x,1))
+            id_list.append(x)
 
         #topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
         #return [x[1][0] if x[1] != [] else -1 for x in topics]

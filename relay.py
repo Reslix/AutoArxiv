@@ -10,8 +10,11 @@ be customized later on,
 """
 
 import smtplib
+from email.header import Header
 import imaplib
 import email
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import maintain as m
 import re
 
@@ -19,7 +22,7 @@ class Emailer():
     """
     A poorly constructed email send/recieve class that will probably never get better. 
     """
-    def __init__(self, identity='listbot', email, passwd):
+    def __init__(self, identity='listbot', email='', passwd=''):
         """
         Just some initliazations.
         """
@@ -44,15 +47,18 @@ class Emailer():
         if len(listing) == 0:
             message = "No new articles"
         else:
-            message = ""
+            message = "\n"
             for i,msg in enumerate(listing):
-                message = message + str(msg[0]) + ', ' + str(msg[2]) + ', ' + str(msg[3]) + ', ' + str(msg[1]) + '|| \n'
+                message = message + str(msg[0]) + ', ' + str(msg[2]) + ', ' + str(msg[3]) + ', ' + str(msg[1]) + ' || \n\n'
 
-        message = message + """To update your ratings for an article, send a new email to the server with the
+        msg = MIMEText(message, _charset="UTF-8")
+        msg['Subject'] = Header(str(len(listing)) + ' New listings, ordered by relevance', "utf-8")
+
+        message = message + """\n\nTo update your ratings for an article, send a new email to the server with the
                                 listing formatted as seen above, with new ratings replacing the old ones. Enclose
                                 text body in double paretheses (()) to assist with email parsing."""
 
-        self.server.sendmail(self.email,email, str(len(listing)) + " New listings, ordered by relevance\n" + message)
+        self.server.sendmail(self.email,email, msg.as_string())
         print("Sent listing to " + email)
         self.server.quit()
 
