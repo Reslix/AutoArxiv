@@ -56,9 +56,9 @@ class NeuralModeler():
         #Used to be 1024, now 2000001
         model.add(Embedding(2000001, 128, input_length=20000))
         model.add(Reshape((1, 20000, 128)))
-        model.add(Convolution2D(nb_filter=512, nb_col=128, nb_row=5, activation='relu'))
-        model.add(Convolution2D(nb_filter=128, nb_col=1, nb_row=5, activation='relu'))
-        model.add(Convolution2D(nb_filter=64, nb_col=1, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=64, nb_col=128, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
+        model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
         model.add(Flatten())
         model.add(Dense(128))
@@ -99,6 +99,8 @@ class NeuralModeler():
         preferences = list(self.c.fetchall())
         shuffle(preferences)
         self.articles = []
+        randoms = []
+        selected = []
         for entry in preferences:
             print(entry)
             self.c.execute("""SELECT arxiv_id, abstract, topic_rep FROM articles WHERE arxiv_id=?""", (entry[0],))
@@ -108,12 +110,15 @@ class NeuralModeler():
                 padded = pad_sequences([[int(x) for x in result[2].split()]], maxlen=20000, value=-1, padding='post', truncating='post')
                 if entry[2] != None:
                     result = (result[0], result[1], padded[0], entry[2])
-                    for i in range(5):
-                        self.articles.append(result)
+                    for i in range(4):
+                        selected.append(result)
                 else:
                     result = (result[0], result[1], padded[0], entry[1])
-                    self.articles.append(result)
+                    randoms.append(result)
 
+        shuffle(randoms)
+        self.articles.extend(selected)
+        self.articles.extend(randoms[:2000])
         shuffle(self.articles)
         self.train_current_model()
 
@@ -156,10 +161,11 @@ class NeuralModeler():
                 rating = self.model.predict(np.array(topics), verbose=debug)
                 print(article, self.master_dict[article][0], rating)
                 results.append((article, rating))
-                self.c.execute('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
+                self.c.execute_bulk('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
                 if self.c.rowcount() == 0:
-                    self.c.execute('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
+                    self.c.execute_bulk('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
                         VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
+            self.c.commit()
         else:
             self.c.execute('''SELECT * FROM current''')
             current = self.c.fetchall()
@@ -169,11 +175,11 @@ class NeuralModeler():
                 rating = self.model.predict(np.array(topics), verbose=debug)
                 print(article, self.master_dict[article][0], rating)
                 results.append((article, rating))
-                self.c.execute('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
+                self.c.execute_bulk('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',((rating[0][0]), int(user), article))
                 if self.c.rowcount() == 0:
-                    self.c.execute('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
-                        VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
-               
+                    self.c.execute_bulk('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
+                        VALUES (?,?,?)''', (int(user), article, (rating[0][0])))
+            self.c.commit()               
 
     def process_all_users(self, save=True, debug=1, all=0):
         """

@@ -118,10 +118,11 @@ class TopicModeler():
         print(len(ids),len(scores),len(averages))
         for i in range(len(dscores)):
             print("Updating score for user "+str(user)+" and articles "+ids[i]+" to " + str(averages[i]))
-            self.c.execute('''UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?''', (averages[i],user,ids[i]))
+            self.c.execute_bulk('''UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?''', (averages[i],user,ids[i]))
             if self.c.rowcount() == 0:    
-                self.c.execute('''INSERT INTO preferences (uid, arxiv_id, t_rating) 
+                self.c.execute_bulk('''INSERT INTO preferences (uid, arxiv_id, t_rating) 
                     VALUES (?,?,?)''', (user, ids[i], averages[i]))
+        self.c.commit()
 
     def process_all_users(self):
         self.c.execute('''SELECT uid FROM users''')
@@ -141,8 +142,9 @@ class TopicModeler():
         for id, tokens in self.plaintext:
             ldaed = self.process_tokens_to_topics(tokens)
             print("Updating topic representation of tokens for "+id)
-            self.c.execute('''UPDATE articles SET topic_rep=? WHERE arxiv_id=?;''',
+            self.c.execute_bulk('''UPDATE articles SET topic_rep=? WHERE arxiv_id=?;''',
                 (' '.join([str(x) for x in ldaed]), id))
+        self.c.commit()
 
     def process_tokens_to_topics(self,tokens):
         id_list = []

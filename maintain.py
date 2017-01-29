@@ -35,6 +35,22 @@ class DbWrapper():
 			print("Database error, trying again in 3s...")
 			time.sleep(3)
 			self.execute(statement,tup)
+
+	def execute_bulk(self,statement,tup=None):
+		try:
+			if tup != None:
+				self.c.execute(statement,tup)
+			else:
+				self.c.execute(statement)
+
+		except sqlite3.OperationalError:
+			print("Database error, trying again in 3s...")
+			time.sleep(3)
+			self.execute_bulk(statement,tup)
+			
+	def commit(self):
+		self.connector.commit()
+
 	def rowcount(self):
 		return self.c.rowcount
 
@@ -118,7 +134,10 @@ def update_user_model(user):
 	uid = c.fetchone()[0]
 	n.train_user(uid)
 
-
+def process_all_users(all=1)
+	n = NeuralModeler(connector=c)
+	n.process_all_users(all=all)
+	
 def create_tables():
 	"""
 	Construction mode:
