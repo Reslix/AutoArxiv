@@ -15,7 +15,6 @@ RUNS FOREVER
 
 c = m.c
 f = Fetcher(c)
-n = NeuralModeler(c)
 e = Emailer(c)
 #***TODO: add a configuration file
 t_count = 0
@@ -24,6 +23,9 @@ fetched = False
 trained = False
 ldaed = False
 updated = False
+c.execute('''SELECT COUNT(*) FROM articles''')
+if c.fetchall() == [(0,)]:
+    m.process_all_users(all=1)
 while True:
     
         now = datetime.now().strftime('%H%M')
@@ -32,13 +34,12 @@ while True:
         if '0500' <= now <= '0630':
             fetched = False
 
-        if fetched == False:
+        if '0630' <= now and fetched == False:
             updated = False
             print('Fetching')
             t_count += 1
             l_count += 1
-            if t_count % 5 == 0:
-                trained = False
+            trained = False
             if l_count % 7 == 0:
                 ldaed == 0
             m.clear_current()
@@ -55,7 +56,7 @@ while True:
             c.execute("""SELECT * FROM current""")
             current = list(c.fetchall())
             print("Sorting new articles")
-            n.process_all_users(all=0)
+            m.process_all_users(all=0)
             articles = {}
             for (article,) in current:
                 c.execute('''SELECT uid,c_rating FROM sorted WHERE arxiv_id=?''', (article,))

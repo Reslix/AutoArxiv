@@ -3,6 +3,8 @@
 Fetches PDFs from the Arxiv, from all categories. 
 Borrows heavily from Andrej Kaparthy's Arxiv Sanity Preserver, 
 a better tool that can be found here: https://github.com/karpathy/arxiv-sanity-preserver
+
+TODO: Have link fetching be 
 """
 from nltk.stem.snowball import SnowballStemmer
 import process1
@@ -210,8 +212,8 @@ class Fetcher():
                         modeled = []
 
                     print("Inserting into articles table")
-                    self.c.execute("""INSERT INTO current VALUES (?)""", (article['shortid'],))
-                    self.c.execute("""INSERT INTO articles 
+                    self.c.execute_bulk("""INSERT INTO current VALUES (?)""", (article['shortid'],))
+                    self.c.execute_bulk("""INSERT INTO articles 
                         (arxiv_id,date,url,title,abstract,category,author,text,token,topic_rep) 
                         VALUES (?,?,?,?,?,?,?,?,?,?);""", 
                         (article['shortid'], article['published'], article['link'], article['title'],
@@ -219,5 +221,6 @@ class Fetcher():
                         ", ".join([x['term'] for x in article['tags']]),
                         ", ".join([x['name'] for x in article['authors']]),
                         text, " ".join([x for x in tokens]), " ".join(x for x in modeled)))
+        self.c.commit()
 
 
