@@ -134,7 +134,7 @@ def update_user_model(user):
 	uid = c.fetchone()[0]
 	n.train_user(uid)
 
-def process_all_users(all=1)
+def process_all_users(all=1):
 	n = NeuralModeler(connector=c)
 	n.process_all_users(all=all)
 	
