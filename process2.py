@@ -17,17 +17,17 @@ it appears that CNTK is attempting to follow keras' model of organization.
 #from cntk.ops.functions import load_model, relu,
 #from cntk import Trainer
 #import cntk as C
-from random import shuffle
-
+from keras.layers.convolutional import Convolution2D, Convolution1D
+from keras.layers import Dense, Embedding, Flatten, Reshape
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import load_model
 from keras.models import Sequential
-from keras.layers import Dense, Embedding, Flatten, Reshape
-from keras.layers.convolutional import Convolution2D, Convolution1D
+from keras import backend as K
+from random import shuffle
 import numpy as np
 import sqlite3
 import os
-from keras import backend as K
+
 K.set_image_dim_ordering('th')
 
 class NeuralModeler():
@@ -49,6 +49,8 @@ class NeuralModeler():
         to have their own network, although that may turn out to be impractical.
         For future updates, will explore the idea of having just one network give out
         all the regressions and have users be a separate parameter at the input layer.
+
+        Given the speed of training and processing, this article
         """
         model = Sequential()
         #Used to be 1024, now 2000001

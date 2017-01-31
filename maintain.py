@@ -5,12 +5,12 @@ of the tool.
 It's just a big bag of things for the time being.
 
 """
-import nltk
+from process2 import NeuralModeler
+from process1 import TopicModeler
+from fetch import Fetcher
 import argparse
 import sqlite3
-from process1 import TopicModeler
-from process2 import NeuralModeler
-from fetch import Fetcher
+import nltk
 import time
 
 dbname = 'autonolda.sq3'

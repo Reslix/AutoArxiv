@@ -10,14 +10,13 @@ When reading the APIs, I discovered something called 'skip-grams', which
 look like a promising alternative. They may be implemented in the future
 once I get a good idea what their advantages are. 
 """
-from gensim.models.ldamulticore import LdaModel
 from gensim import corpora, models, similarities
+from gensim.models.ldamulticore import LdaModel
+import stop_words
 import sqlite3
 import gensim
-import os
 import nltk
-import stop_words
-
+import os
 
 class TopicModeler():
     """
@@ -31,7 +30,7 @@ class TopicModeler():
         print("Loading text from db")
         self.c.execute('''SELECT arxiv_id, text, token FROM articles''')
         self.articles = self.c.fetchall()
-        print("Tokenizing text")
+        print("Separating text")
         for id,text,token in self.articles:
              self.plaintext.append((id,token.split()))
 
@@ -132,6 +131,10 @@ class TopicModeler():
             self.process_user_tscore(user[0])
 
     def save_topic_representation(self):
+        """
+        This used to use LDA until it was dropped without no
+        noticable performance detriment.
+        """
         self.reverse_dict = {}
         for i in self.dictionary:
             self.reverse_dict[self.dictionary[i]] = i
