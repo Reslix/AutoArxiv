@@ -5,14 +5,15 @@ of the tool.
 It's just a big bag of things for the time being.
 
 """
-import nltk
+from preprocess import TopicModeler
+from process import NeuralModeler
+from fetch import Fetcher
 import argparse
 import sqlite3
-from process1 import TopicModeler
-from process2 import NeuralModeler
-from fetch import Fetcher
+import nltk
 import time
-dbname = 'auto.sq3'
+
+dbname = 'autonolda.sq3'
 
 class DbWrapper():
 	"""
@@ -31,9 +32,25 @@ class DbWrapper():
 			self.connector.commit()
 
 		except sqlite3.OperationalError:
-			print("Database locked, trying again in 3s...")
+			print("Database error, trying again in 3s...")
 			time.sleep(3)
 			self.execute(statement,tup)
+
+	def execute_bulk(self,statement,tup=None):
+		try:
+			if tup != None:
+				self.c.execute(statement,tup)
+			else:
+				self.c.execute(statement)
+
+		except sqlite3.OperationalError:
+			print("Database error, trying again in 3s...")
+			time.sleep(3)
+			self.execute_bulk(statement,tup)
+			
+	def commit(self):
+		self.connector.commit()
+
 	def rowcount(self):
 		return self.c.rowcount
 
@@ -103,7 +120,6 @@ def update_topics_and_t():
 	t.initialize()
 	t.create_tfidf_index()
 	t.process_all_users()
-	t.construct_topic_model()
 	t.save_topic_representation()
 
 def update_networks():
@@ -117,7 +133,10 @@ def update_user_model(user):
 	uid = c.fetchone()[0]
 	n.train_user(uid)
 
-
+def process_all_users(all=1):
+	n = NeuralModeler(connector=c)
+	n.process_all_users(all=all)
+	
 def create_tables():
 	"""
 	Construction mode:

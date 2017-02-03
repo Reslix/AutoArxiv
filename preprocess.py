@@ -10,19 +10,17 @@ When reading the APIs, I discovered something called 'skip-grams', which
 look like a promising alternative. They may be implemented in the future
 once I get a good idea what their advantages are. 
 """
-from gensim.models.ldamulticore import LdaModel
 from gensim import corpora, models, similarities
+from gensim.models.ldamulticore import LdaModel
+import stop_words
 import sqlite3
 import gensim
-import os
 import nltk
-import stop_words
-
+import os
 
 class TopicModeler():
     """
-    This class wraps a topic modeling feature that vectorizes text tokens
-    and then creates a topic model using LDA. There will be 1024 topic categories. 
+    Name is legacy. This class wraps the TFIDF 
     """
     def __init__(self, connector, preload = 0):
         self.plaintext = []
@@ -31,17 +29,15 @@ class TopicModeler():
         print("Loading text from db")
         self.c.execute('''SELECT arxiv_id, text, token FROM articles''')
         self.articles = self.c.fetchall()
-        print("Tokenizing text")
+        print("Separating text")
         for id,text,token in self.articles:
              self.plaintext.append((id,token.split()))
 
         if preload == 1:
-            self.ldamodel = LdaModel.load(os.path.join('lda','lda'))
             self.dictionary = corpora.dictionary.Dictionary.load(os.path.join('lda','dictionary'))
             print("Assembling corpus from bag")
             self.corpus = [(id, self.dictionary.doc2bow(tokens)) for id, tokens in self.plaintext]
         else:
-            self.ldamodel = None
             self.dictionary = None
 
     def initialize(self):
@@ -49,17 +45,7 @@ class TopicModeler():
         self.dictionary.save(os.path.join('lda','dictionary'))
         self.corpus = [(id, self.dictionary.doc2bow(tokens)) for id, tokens in self.plaintext]
 
-    def construct_topic_model(self):
-        """
-        Constructs a topic model based on tokenized and stopword proceeded 
-
-        """
-        #Ultimately, we want to leave one topic open as there may be words that don't exist.
-        print("Training topic model...")
-        self.ldamodel = LdaModel(list(zip(*self.corpus))[1], num_topics=1023, id2word = self.dictionary, passes=7)
-        self.ldamodel.save(os.path.join('lda','lda'))
-        print("Done!")
-
+   
     def load_tfidf(self):
         self.tfidf = models.TfidfModel.load(os.path.join('tfidf','tfidf'))
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
@@ -71,7 +57,7 @@ class TopicModeler():
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
         print("Done!")
 
-    def process_user_tscore(self,user):
+    def process_user_tscore(self,user,papers):
         """
         Basically, for every user, assign a rating for each article. Entire articles
         will be compared. The conglomerate t_rating will be the average of tfidf rating * the percent
@@ -81,7 +67,7 @@ class TopicModeler():
         self.c.execute('''SELECT arxiv_id, t_rating, c_rating FROM preferences WHERE uid=?''', (user,))
         articles = self.c.fetchall()
         print("Loaded user preferences")
-        ids = list(zip(*self.corpus))[0]  #This is going for a very questionable index matching
+        ids = list(zip(*self.corpus))[0] 
         temp = {}
         print("Interpolating with main corpus")
         for article in articles:
@@ -115,19 +101,32 @@ class TopicModeler():
 
         print(len(ids),len(scores),len(averages))
         for i in range(len(dscores)):
-            print("Updating score for user "+user+" and articles "+ids[i]+" to " + str(averages[i]))
-            self.c.execute('''UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?''', (averages[i],user,ids[i]))
+            print("Updating score for user "+str(user)+" and articles "+ids[i]+" to " + str(averages[i]))
+            self.c.execute_bulk('''UPDATE preferences SET t_rating=? WHERE uid=? AND arxiv_id=?''', (averages[i],user,ids[i]))
             if self.c.rowcount() == 0:    
-                self.c.execute('''INSERT INTO preferences (uid, arxiv_id, t_rating) 
+                self.c.execute_bulk('''INSERT INTO preferences (uid, arxiv_id, t_rating) 
                     VALUES (?,?,?)''', (user, ids[i], averages[i]))
+        self.c.commit()
 
     def process_all_users(self):
+        tempcorpus = [x for x in self.corpus]
+        working = [x for x in self.corpus]
         self.c.execute('''SELECT uid FROM users''')
         users = list(self.c.fetchall())
         for user in users:
-            self.process_user_tscore(user[0])
+            self.c.execute('''SELECT COUNT(*) FROM preferences WHERE uid=?''', (user,))
+            count = self.c.fetchall[0][0]
+            shuffle(working)
+            for i in range(0,len(tempcorpus)-1,min(1000,max(int(count)*20,500))):
+                self.corpus = working[i:min(1000,max(int(count)*20,500))*(i+1)]
+                self.process_user_tscore(user[0])
 
+        self.corpus = tempcorpus
     def save_topic_representation(self):
+        """
+        This used to use LDA until it was dropped without no
+        noticable performance detriment.
+        """
         self.reverse_dict = {}
         for i in self.dictionary:
             self.reverse_dict[self.dictionary[i]] = i
@@ -135,8 +134,9 @@ class TopicModeler():
         for id, tokens in self.plaintext:
             ldaed = self.process_tokens_to_topics(tokens)
             print("Updating topic representation of tokens for "+id)
-            self.c.execute('''UPDATE articles SET topic_rep=? WHERE arxiv_id=?;''',
+            self.c.execute_bulk('''UPDATE articles SET topic_rep=? WHERE arxiv_id=?;''',
                 (' '.join([str(x) for x in ldaed]), id))
+        self.c.commit()
 
     def process_tokens_to_topics(self,tokens):
         id_list = []
@@ -145,8 +145,9 @@ class TopicModeler():
                 x = self.reverse_dict[token]
             except KeyError:
                 x = -1
-            id_list.append((x,1))
+            id_list.append(x)
 
-        topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
-        return [x[1][0] if x[1] != [] else -1 for x in topics]
+        #topics = self.ldamodel.get_document_topics(id_list,per_word_topics=1)[1]
+        #return [x[1][0] if x[1] != [] else -1 for x in topics]
+        return id_list
 

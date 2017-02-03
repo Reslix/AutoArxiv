@@ -3,19 +3,20 @@
 Fetches PDFs from the Arxiv, from all categories. 
 Borrows heavily from Andrej Kaparthy's Arxiv Sanity Preserver, 
 a better tool that can be found here: https://github.com/karpathy/arxiv-sanity-preserver
+
+TODO: Have link fetching be 
 """
 from nltk.stem.snowball import SnowballStemmer
-import process1
-import sqlite3
-import nltk
-import stop_words
-import gensim
-import urllib
-import shutil
-import time
-import random
 import feedparser
+import stop_words
+import sqlite3
+import gensim
 import pickle
+import random
+import shutil
+import urllib
+import nltk
+import time
 import os
 import re
 
@@ -61,22 +62,24 @@ class Fetcher():
         self.c = connector
         self.articles = []
         self.mirror_list = ['export','lanl','es','in','de','cn']
-    def fetch_links(self, query='all', care=1):
+
+    def fetch_links(self, query='all', care=1, iter=10):
         """
         Fetches all the links in the given query parameters. 
         """
         base_url = 'http://export.arxiv.org/api/query?'
-        categories = 'cat:q-bio+OR+cat:q-fin+OR+cat:math+OR+cat:stat+OR+cat:physics+OR+cat:quant-ph+OR+cat:cs'
+        categories = 'cat:q-bio.*+OR+cat:q-fin.*+OR+cat:math.*+OR+cat:stat.*+OR+cat:physics.*+OR+cat:quant-ph+OR+cat:cs.*'
         #base_query = 'astro-ph cond-mat gr-qc hep-ex hep-lat hep-ph hep-th math-ph nlin nucl-ex nucl-th physics quant-ph'
         number = 0
+        attempts = 0
         start = self.start
         c = True
 
         while number < self.number or c == True:
             if self.number == 0 and c == True:
-                iters = 25
+                iters = iter
             else:
-                iters = min(self.number - number, 25) 
+                iters = min(self.number - number, iter) 
             end = start + iters + 1
             base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories, start, iters) #Keeping it this way to save energy.
             url = base_url + base_query
@@ -85,6 +88,8 @@ class Fetcher():
 
                 if len(parsed.entries) == 0:
                     print("Zero entries retrieved")
+                    end = start
+                    attempts += 1
 
                 for entry in parsed.entries:
                     entry = process_feed_entry(entry)
@@ -95,13 +100,14 @@ class Fetcher():
                     elif care == 1:
                         c = False
                         break
-                        
                     number += 1
+                    attempts += 1
 
             if number >= self.number and self.number > 0: 
                 c = False
             else:
-                time.sleep(1.0) ##### Some time
+                time.sleep(0.25) ##### Some time
+            print('Attempts: ',attempts,'Success: ',number)
             start = end + 1
 
     def update_current(self):
@@ -135,7 +141,7 @@ class Fetcher():
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
             print(pdfs)
             assert len(pdfs) == 1
-            pdf_url = (pdfs[0] + '.pdf').replace('http://','https://' + self.mirror_list[mirror_index] +'.')
+            pdf_url = (pdfs[0] + '.pdf').replace('http://','http://' + self.mirror_list[mirror_index] +'.')
             basename = pdf_url.split('/')[-1]
             fname = os.path.join('pdf', basename)
 
@@ -154,13 +160,16 @@ class Fetcher():
                 print("Error downloading: ", pdf_url)
                 print(e)
                 for i in range(len(self.mirror_list)-1):
-                    mirror_index = (mirror_index + 1) % len(self.mirror_list)
-                    print("Trying again with new mirror")
-                    pdf_url = (pdfs[0] + '.pdf').replace('http://','https://' + self.mirror_list[mirror_index] +'.')
-                    req = urllib.request.urlopen(pdf_url, None, timeout_secs)
-                    with open(fname, 'wb') as fp:
-                        shutil.copyfileobj(req, fp)
-                    time.sleep(0.1 + random.uniform(0,0.2))
+                    try:
+                        mirror_index = (mirror_index + 1) % len(self.mirror_list)
+                        print("Trying again with new mirror")
+                        pdf_url = (pdfs[0] + '.pdf').replace('http://','http://' + self.mirror_list[mirror_index] +'.')
+                        req = urllib.request.urlopen(pdf_url, None, timeout_secs)
+                        with open(fname, 'wb') as fp:
+                            shutil.copyfileobj(req, fp)
+                        time.sleep(0.1 + random.uniform(0,0.2))
+                    except Exception as e:
+                        print("Try failed")
 
         print("%d/%d of %d downloaded ok." % (numok, numtot, len(self.articles)))
         print("final number of papers downloaded okay: %d/%d" % (numok, len(self.articles)))
@@ -170,14 +179,16 @@ class Fetcher():
         Runs the linux tool 'pdftotext' to convert all the pdfs into text files, stored in
         the /txt folder.
         """
+        have = set(os.listdir('txt'))
         for entry in self.articles:
             pdfs = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
             pdf_url = pdfs[0] + '.pdf'
             basename = pdf_url.split('/')[-1]
             fname = os.path.join('pdf', basename)
             entry['txtname'] = os.path.join('txt',basename[:-3] + 'txt')
-            cmd = 'pdftotext {0} {1}'.format(fname,(entry['txtname']))
-            os.system(cmd)
+            if not entry['txtname'] in have:
+                cmd = 'pdftotext {0} {1}'.format(fname,(entry['txtname']))
+                os.system(cmd)
 
     def tokenize_and_save(self, lda=0):
         """
@@ -188,33 +199,23 @@ class Fetcher():
         have = set(os.listdir('txt'))
         stemmer = SnowballStemmer('english')
         swords = stop_words.get_stop_words('en')
-        if lda == 1:
-            print("Chose to apply topic model during insert")
-            topics = process1.topicModeler
-        else:
-            print("Not applying topic model during insert")
-            topics = []
-
+        
         for article in self.articles:
             if article['txtname'][4:] in have:
                 with open(article['txtname'],'r') as f:
                     print("processing {0}: {1} for tokens and topics".format(article['shortid'], article['title']))
                     text = f.read().lower()
-                    tokens = [stemmer.stem(x) for x in nltk.word_tokenize(text) if (not x in swords and re.match('\w',x))]
-                    if topics != []:
-                        modeled = topics.process_tokens_to_topics(tokens)
-                    else:
-                        modeled = []
-
+                    tokens = [stemmer.stem(x) for x in nltk.word_tokenize(text) if (re.match('\w',x))]
                     print("Inserting into articles table")
-                    self.c.execute("""INSERT INTO current VALUES (?)""", (article['shortid'],))
-                    self.c.execute("""INSERT INTO articles 
-                        (arxiv_id,date,url,title,abstract,category,author,text,token,topic_rep) 
+                    self.c.execute_bulk("""INSERT INTO current VALUES (?)""", (article['shortid'],))
+                    self.c.execute_bulk("""INSERT INTO articles 
+                        (arxiv_id,date,url,title,abstract,category,author,text,token) 
                         VALUES (?,?,?,?,?,?,?,?,?,?);""", 
                         (article['shortid'], article['published'], article['link'], article['title'],
                         article['summary'],
                         ", ".join([x['term'] for x in article['tags']]),
                         ", ".join([x['name'] for x in article['authors']]),
-                        text, " ".join([x for x in tokens]), " ".join(x for x in modeled)))
+                        text, " ".join([x for x in tokens])))
+        self.c.commit()
 
 
