@@ -55,7 +55,7 @@ class NeuralModeler():
         model = Sequential()
         #Used to be 1024, now 2000001
         model.add(Embedding(2000001, 128, input_length=10000))
-        model.add(Reshape((1, 20000, 128)))
+        model.add(Reshape((1, 10000, 128)))
         model.add(Convolution2D(nb_filter=64, nb_col=128, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))

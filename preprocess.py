@@ -109,19 +109,13 @@ class TopicModeler():
         self.c.commit()
 
     def process_all_users(self):
-        tempcorpus = [x for x in self.corpus]
-        working = [x for x in self.corpus]
         self.c.execute('''SELECT uid FROM users''')
         users = list(self.c.fetchall())
         for (user,) in users:
             self.c.execute('''SELECT COUNT(*) FROM preferences WHERE uid=?''', (user,))
             count = self.c.fetchall()[0][0]
-            shuffle(working)
-            for i in range(0,len(tempcorpus)-1,min(1000,max(int(count)*20,500))):
-                self.corpus = working[i:min(1000,max(int(count)*20,500))*(i+1)]
-                self.process_user_tscore(user)
+            self.process_user_tscore(user)
 
-        self.corpus = tempcorpus
     def save_topic_representation(self):
         """
         This used to use LDA until it was dropped without no
