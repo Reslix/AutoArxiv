@@ -5,8 +5,8 @@ of the tool.
 It's just a big bag of things for the time being.
 
 """
-from process2 import NeuralModeler
-from process1 import TopicModeler
+from preprocess import TopicModeler
+from process import NeuralModeler
 from fetch import Fetcher
 import argparse
 import sqlite3
@@ -120,7 +120,6 @@ def update_topics_and_t():
 	t.initialize()
 	t.create_tfidf_index()
 	t.process_all_users()
-	t.construct_topic_model()
 	t.save_topic_representation()
 
 def update_networks():

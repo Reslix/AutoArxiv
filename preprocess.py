@@ -20,8 +20,7 @@ import os
 
 class TopicModeler():
     """
-    This class wraps a topic modeling feature that vectorizes text tokens
-    and then creates a topic model using LDA. There will be 1024 topic categories. 
+    Name is legacy. This class wraps the TFIDF 
     """
     def __init__(self, connector, preload = 0):
         self.plaintext = []
@@ -35,12 +34,10 @@ class TopicModeler():
              self.plaintext.append((id,token.split()))
 
         if preload == 1:
-            self.ldamodel = LdaModel.load(os.path.join('lda','lda'))
             self.dictionary = corpora.dictionary.Dictionary.load(os.path.join('lda','dictionary'))
             print("Assembling corpus from bag")
             self.corpus = [(id, self.dictionary.doc2bow(tokens)) for id, tokens in self.plaintext]
         else:
-            self.ldamodel = None
             self.dictionary = None
 
     def initialize(self):
@@ -48,20 +45,7 @@ class TopicModeler():
         self.dictionary.save(os.path.join('lda','dictionary'))
         self.corpus = [(id, self.dictionary.doc2bow(tokens)) for id, tokens in self.plaintext]
 
-    def construct_topic_model(self):
-        """
-        Constructs a topic model based on tokenized and stopword proceeded 
-
-        """
-        #Ultimately, we want to leave one topic open as there may be words that don't exist.
-        """
-        print("Training topic model...")
-        self.ldamodel = LdaModel(list(zip(*self.corpus))[1], num_topics=1023, id2word = self.dictionary, passes=7)
-        self.ldamodel.save(os.path.join('lda','lda'))
-        print("Done!")
-        """
-        pass
-
+   
     def load_tfidf(self):
         self.tfidf = models.TfidfModel.load(os.path.join('tfidf','tfidf'))
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
@@ -73,7 +57,7 @@ class TopicModeler():
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
         print("Done!")
 
-    def process_user_tscore(self,user):
+    def process_user_tscore(self,user,papers):
         """
         Basically, for every user, assign a rating for each article. Entire articles
         will be compared. The conglomerate t_rating will be the average of tfidf rating * the percent
@@ -83,7 +67,7 @@ class TopicModeler():
         self.c.execute('''SELECT arxiv_id, t_rating, c_rating FROM preferences WHERE uid=?''', (user,))
         articles = self.c.fetchall()
         print("Loaded user preferences")
-        ids = list(zip(*self.corpus))[0]  #This is going for a very questionable index matching
+        ids = list(zip(*self.corpus))[0] 
         temp = {}
         print("Interpolating with main corpus")
         for article in articles:
@@ -125,11 +109,19 @@ class TopicModeler():
         self.c.commit()
 
     def process_all_users(self):
+        tempcorpus = [x for x in self.corpus]
+        working = [x for x in self.corpus]
         self.c.execute('''SELECT uid FROM users''')
         users = list(self.c.fetchall())
         for user in users:
-            self.process_user_tscore(user[0])
+            self.c.execute('''SELECT COUNT(*) FROM preferences WHERE uid=?''', (user,))
+            count = self.c.fetchall[0][0]
+            shuffle(working)
+            for i in range(0,len(tempcorpus)-1,min(1000,max(int(count)*20,500))):
+                self.corpus = working[i:min(1000,max(int(count)*20,500))*(i+1)]
+                self.process_user_tscore(user[0])
 
+        self.corpus = tempcorpus
     def save_topic_representation(self):
         """
         This used to use LDA until it was dropped without no

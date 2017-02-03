@@ -54,7 +54,7 @@ class NeuralModeler():
         """
         model = Sequential()
         #Used to be 1024, now 2000001
-        model.add(Embedding(2000001, 128, input_length=20000))
+        model.add(Embedding(2000001, 128, input_length=10000))
         model.add(Reshape((1, 20000, 128)))
         model.add(Convolution2D(nb_filter=64, nb_col=128, nb_row=5, activation='relu'))
         model.add(Convolution2D(nb_filter=32, nb_col=1, nb_row=5, activation='relu'))
@@ -90,8 +90,8 @@ class NeuralModeler():
 
     def train_user(self, uid):
         """
-        This prepares the training data for each user. Each pseudo-LDA representation
-        is separated by spaces and truncated to a 20000 feature limit padded by -1's.
+        This prepares the training data for each user. Each word representation
+        is split by spaces and truncated to a 10000 feature limit padded by -1's.
 
         The topic_rep format of the articles is already mostly formatted into what we need.
         """
@@ -107,7 +107,7 @@ class NeuralModeler():
             result = list(self.c.fetchall())
             if len(result) > 0:
                 result = result[0]
-                padded = pad_sequences([[int(x) for x in result[2].split()]], maxlen=20000, value=-1, padding='post', truncating='post')
+                padded = pad_sequences([[int(x) for x in result[2].split()]], maxlen=10000, value=-1, padding='post', truncating='post')
                 if entry[2] != None:
                     result = (result[0], result[1], padded[0], entry[2])
                     for i in range(4):
@@ -152,34 +152,25 @@ class NeuralModeler():
             while master_list != []:
                 entry  = master_list.pop()
                 self.master_dict[entry[0]] = entry[1], entry[2]
-
+                
         if all == 1:
-            akeys = self.master_dict.keys()
-            for article in akeys:
-                topics = [int(x) for x in self.master_dict[article][1].split()]
-                topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
-                rating = self.model.predict(np.array(topics), verbose=debug)
-                print(article, self.master_dict[article][0], rating)
-                results.append((article, rating))
-                self.c.execute_bulk('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
-                if self.c.rowcount() == 0:
-                    self.c.execute_bulk('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
-                        VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
-            self.c.commit()
+            articles = self.master_dict.keys()
         else:
             self.c.execute('''SELECT * FROM current''')
-            current = self.c.fetchall()
-            for (article,) in current:
-                topics = [int(x) for x in self.master_dict[article][1].split()]
-                topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
-                rating = self.model.predict(np.array(topics), verbose=debug)
-                print(article, self.master_dict[article][0], rating)
-                results.append((article, rating))
-                self.c.execute_bulk('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',((rating[0][0]), int(user), article))
-                if self.c.rowcount() == 0:
-                    self.c.execute_bulk('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
-                        VALUES (?,?,?)''', (int(user), article, (rating[0][0])))
-            self.c.commit()               
+            articles = [x for (x,) in self.c.fetchall()]
+
+        for article in articles:
+            topics = [int(x) for x in self.master_dict[article][1].split()]
+            topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
+            rating = self.model.predict(np.array(topics), verbose=debug)
+            print(article, self.master_dict[article][0], rating)
+            results.append((article, rating))
+            self.c.execute_bulk('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
+            if self.c.rowcount() == 0:
+                self.c.execute_bulk('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
+                    VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
+        self.c.commit()
+      
 
     def process_all_users(self, save=True, debug=1, all=0):
         """
