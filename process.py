@@ -86,7 +86,7 @@ class NeuralModeler():
         arxiv_id, abstract, topic_rep, ratings = zip(*self.articles)
         for t,r in zip(topic_rep, ratings):
             print(t,r)
-            self.model.fit(np.array(t).reshape(1,20000), np.array([r]), verbose=debug)
+            self.model.fit(np.array(t).reshape(1,10000), np.array([r]), verbose=debug)
 
     def train_user(self, uid):
         """
@@ -118,7 +118,7 @@ class NeuralModeler():
 
         shuffle(randoms)
         self.articles.extend(selected)
-        self.articles.extend(randoms[:2000])
+        self.articles.extend(randoms[:4000])
         shuffle(self.articles)
         self.train_current_model()
 
