@@ -11,7 +11,7 @@ look like a promising alternative. They may be implemented in the future
 once I get a good idea what their advantages are. 
 """
 from gensim import corpora, models, similarities
-from gensim.models.ldamulticore import LdaModel
+from random import shuffle
 import stop_words
 import sqlite3
 import gensim
@@ -57,7 +57,7 @@ class TopicModeler():
         self.index = similarities.MatrixSimilarity(self.tfidf[list(zip(*self.corpus))[1]])
         print("Done!")
 
-    def process_user_tscore(self,user,papers):
+    def process_user_tscore(self,user):
         """
         Basically, for every user, assign a rating for each article. Entire articles
         will be compared. The conglomerate t_rating will be the average of tfidf rating * the percent
@@ -113,13 +113,13 @@ class TopicModeler():
         working = [x for x in self.corpus]
         self.c.execute('''SELECT uid FROM users''')
         users = list(self.c.fetchall())
-        for user in users:
+        for (user,) in users:
             self.c.execute('''SELECT COUNT(*) FROM preferences WHERE uid=?''', (user,))
-            count = self.c.fetchall[0][0]
+            count = self.c.fetchall()[0][0]
             shuffle(working)
             for i in range(0,len(tempcorpus)-1,min(1000,max(int(count)*20,500))):
                 self.corpus = working[i:min(1000,max(int(count)*20,500))*(i+1)]
-                self.process_user_tscore(user[0])
+                self.process_user_tscore(user)
 
         self.corpus = tempcorpus
     def save_topic_representation(self):

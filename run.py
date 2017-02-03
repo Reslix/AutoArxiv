@@ -27,16 +27,17 @@ trained = False
 ldaed = False
 updated = False
 one_shot = True
+fetch_many = True
 
-c.execute('''SELECT COUNT(*) FROM articles''')
-if c.fetchall() == [(0,)]:
+if fetch_many:
     m.fetch_missing(15000)
-    m.update_topics_and_t()
+    m.update_tfidf()
     m.update_networks()
     m.process_all_users(all=1)
-
+    fetch_many = False
+    
 if one_shot = True:
-    m.update_topics_and_t()
+    m.clear_current()
     c.execute('''SELECT arxiv_id from articles''')
     a = list(c.fetchall())
     for i in a:
@@ -59,7 +60,7 @@ while True:
 
         if '0000' <= now <= '0030' and ldaed == False:
             print("Updating topics and term frequency index...this will take a while")
-            m.update_topics_and_t()
+            m.update_tfidf()
             print("Updating all ANN models")
             m.update_networks()
             ldaed = True
@@ -83,7 +84,7 @@ while True:
 
             m.clear_sorted()
             print("Fetching new links...")
-            f.fetch_links(iter=5)
+            f.fetch_links(iter=10)
             print("Downloading articles...")
             f.fetch_pdfs()
             f.pdf_to_txt()

@@ -72,12 +72,16 @@ class Fetcher():
         #base_query = 'astro-ph cond-mat gr-qc hep-ex hep-lat hep-ph hep-th math-ph nlin nucl-ex nucl-th physics quant-ph'
         number = 0
         attempts = 0
+        small = False
         start = self.start
         c = True
 
         while number < self.number or c == True:
             if self.number == 0 and c == True:
                 iters = iter
+            elif small == True:
+                iters = 1
+                small = False
             else:
                 iters = min(self.number - number, iter) 
             end = start + iters + 1
@@ -88,9 +92,10 @@ class Fetcher():
 
                 if len(parsed.entries) == 0:
                     print("Zero entries retrieved")
-                    end = start
+                    end = start - 1
+                    small = True
                     attempts += 1
-
+                
                 for entry in parsed.entries:
                     entry = process_feed_entry(entry)
                     self.c.execute("""SELECT count(*) FROM articles WHERE arxiv_id=?""", (entry['shortid'],))
@@ -186,9 +191,15 @@ class Fetcher():
             basename = pdf_url.split('/')[-1]
             fname = os.path.join('pdf', basename)
             entry['txtname'] = os.path.join('txt',basename[:-3] + 'txt')
-            if not entry['txtname'] in have:
+            if not basename[:-3] + 'txt' in have:
+                print('Converting',fname)
                 cmd = 'pdftotext {0} {1}'.format(fname,(entry['txtname']))
-                os.system(cmd)
+                result = os.system(cmd)
+                if str(result).startswith('Syntax'):
+                    os.system('rm '+fname)
+                    print('Removed bad file ',fname)
+            else:
+                print('Already have ', basename[:-3] + 'txt')
 
     def tokenize_and_save(self, lda=0):
         """
@@ -203,19 +214,20 @@ class Fetcher():
         for article in self.articles:
             if article['txtname'][4:] in have:
                 with open(article['txtname'],'r') as f:
-                    print("processing {0}: {1} for tokens and topics".format(article['shortid'], article['title']))
+                    print("processing {0}: {1}".format(article['shortid'], article['title']))
                     text = f.read().lower()
                     tokens = [stemmer.stem(x) for x in nltk.word_tokenize(text) if (re.match('\w',x))]
-                    print("Inserting into articles table")
-                    self.c.execute_bulk("""INSERT INTO current VALUES (?)""", (article['shortid'],))
-                    self.c.execute_bulk("""INSERT INTO articles 
-                        (arxiv_id,date,url,title,abstract,category,author,text,token) 
-                        VALUES (?,?,?,?,?,?,?,?,?,?);""", 
-                        (article['shortid'], article['published'], article['link'], article['title'],
-                        article['summary'],
-                        ", ".join([x['term'] for x in article['tags']]),
-                        ", ".join([x['name'] for x in article['authors']]),
-                        text, " ".join([x for x in tokens])))
+                    self.c.execute_bulk('''SELECT COUNT(*) FROM articles WHERE arxiv_id=?''', (article['shortid'],))
+                    if self.c.fetchall() == [(0,)]:
+                        self.c.execute_bulk("""INSERT INTO current VALUES (?)""", (article['shortid'],))
+                        self.c.execute_bulk("""INSERT INTO articles 
+                            (arxiv_id,date,url,title,abstract,category,author,text,token) 
+                            VALUES (?,?,?,?,?,?,?,?,?);""", 
+                            (article['shortid'], article['published'], article['link'], article['title'],
+                            article['summary'],
+                            ", ".join([x['term'] for x in article['tags']]),
+                            ", ".join([x['name'] for x in article['authors']]),
+                            text, " ".join([x for x in tokens])))
         self.c.commit()
 
 

@@ -161,7 +161,7 @@ class NeuralModeler():
 
         for article in articles:
             topics = [int(x) for x in self.master_dict[article][1].split()]
-            topics = pad_sequences([topics], maxlen=20000, value=-1, padding='post', truncating='post')
+            topics = pad_sequences([topics], maxlen=10000, value=-1, padding='post', truncating='post')
             rating = self.model.predict(np.array(topics), verbose=debug)
             print(article, self.master_dict[article][0], rating)
             results.append((article, rating))

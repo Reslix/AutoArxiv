@@ -71,7 +71,6 @@ def fetch_missing(cap=20000):
 	valves. Just run this a few times, allotting for breaks, to get things working.
 	Run with extreme caution.
 	"""
-	c.execute('''DELETE FROM articles''')
 	f = Fetcher(connector=c)
 	f.number = cap
 	f.fetch_links(care=0)
@@ -115,7 +114,7 @@ def clear_current():
 def clear_sorted():
 	c.execute('''DELETE FROM sorted''')
 
-def update_topics_and_t():
+def update_tfidf():
 	t = TopicModeler(preload=0, connector=c)
 	t.initialize()
 	t.create_tfidf_index()
