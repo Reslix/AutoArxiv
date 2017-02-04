@@ -63,7 +63,7 @@ class Fetcher():
         self.articles = []
         self.mirror_list = ['export','lanl','es','in','de','cn']
 
-    def fetch_links(self, query='all', care=1, iter=10):
+    def fetch_links(self, query='all', care=1, itert=100):
         """
         Fetches all the links in the given query parameters. 
         """
@@ -73,17 +73,27 @@ class Fetcher():
         number = 0
         attempts = 0
         small = False
+        smaller = False
+        smallest = False
         start = self.start
         c = True
 
         while number < self.number or c == True:
             if self.number == 0 and c == True:
-                iters = iter
-            elif small == True:
-                iters = 1
+                iters = itert
+            elif small:
+                iters = 25
                 small = False
+            elif smaller:
+                iters = 5
+                smaller = False
+                small = True
+            elif smallest:
+                iters = 1
+                smallest = False
+                smaller = True
             else:
-                iters = min(self.number - number, iter) 
+                iters = min(self.number - number, itert) 
             end = start + iters + 1
             base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories, start, iters) #Keeping it this way to save energy.
             url = base_url + base_query
@@ -93,8 +103,17 @@ class Fetcher():
                 if len(parsed.entries) == 0:
                     print("Zero entries retrieved")
                     end = start - 1
-                    small = True
-                    attempts += 1
+                    if iters == itert:
+                        small = True
+                        attempts += itert
+                    elif iters == 25:
+                        smaller = True
+                        attempts += 25
+                    elif iters == 5:
+                        smallest = True
+                        attempts += 5
+                    else:    
+                        attempts += 1
                 
                 for entry in parsed.entries:
                     entry = process_feed_entry(entry)

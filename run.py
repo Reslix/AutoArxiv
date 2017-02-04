@@ -36,7 +36,7 @@ if fetch_many:
     m.process_all_users(all=1)
     fetch_many = False
     
-if one_shot = True:
+if one_shot:
     m.clear_current()
     c.execute('''SELECT arxiv_id from articles''')
     a = list(c.fetchall())
@@ -53,35 +53,25 @@ while True:
             e.receive_emails()
             updated = True
 
-        if '0100' <= now <= '0130' and trained == False and ldaed == True:
-            print("Updating all ANN models")
-            m.update_networks()
-            trained = True
-
-        if '0000' <= now <= '0030' and ldaed == False:
+        if '0100' <= now <= '0130' and trained == False:
             print("Updating topics and term frequency index...this will take a while")
             m.update_tfidf()
             print("Updating all ANN models")
             m.update_networks()
-            ldaed = True
+            trained = True
 
         #This part does the new article fetching
         if '0500' <= now <= '0630' and fetched == True:
             fetched = False
 
-        if '0630' <= now <= '700' and fetched == False:
+        if ('0630' <= now <= '700' and fetched == False) or one_shot:
             updated = False
             print('Fetching')
-            t_count += 1
-            l_count += 1
             trained = False
-            if l_count % 7 == 0:
-                ldaed == False
             if not one_shot:
                 m.clear_current()
             else:
                 one_shot = False
-
             m.clear_sorted()
             print("Fetching new links...")
             f.fetch_links(iter=10)
