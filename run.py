@@ -27,7 +27,7 @@ trained = False
 ldaed = False
 updated = False
 one_shot = True
-fetch_many = True
+fetch_many = False
 
 if fetch_many:
     m.fetch_missing(15000)
@@ -40,8 +40,8 @@ if one_shot:
     m.clear_current()
     c.execute('''SELECT arxiv_id from articles''')
     a = list(c.fetchall())
-    for i in a:
-        c.execute_bulk('''INSERT INTO current (arxiv_id) VALUES ?''', (i,))
+    for (i,) in a:
+        c.execute_bulk('''INSERT INTO current (arxiv_id) VALUES (?)''', (i,))
     c.commit()
 
 while True:
@@ -74,7 +74,7 @@ while True:
                 one_shot = False
             m.clear_sorted()
             print("Fetching new links...")
-            f.fetch_links(iter=10)
+            f.fetch_links(itert=10)
             print("Downloading articles...")
             f.fetch_pdfs()
             f.pdf_to_txt()
