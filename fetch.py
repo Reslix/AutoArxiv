@@ -122,8 +122,11 @@ class Fetcher():
                     if check == [(0,)]:
                         self.articles.append(entry)
                     elif care == 1:
+                        print("Entry exists")
                         c = False
                         break
+                    else:
+                        print("Entry exists")
                     number += 1
                     attempts += 1
 

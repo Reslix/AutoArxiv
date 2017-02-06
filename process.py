@@ -84,8 +84,10 @@ class NeuralModeler():
         Trains a loaded model.
         """
         arxiv_id, abstract, topic_rep, ratings = zip(*self.articles)
+        count = 0
         for t,r in zip(topic_rep, ratings):
-            print(t,r)
+            print(count,t,r)
+            count += 1
             self.model.fit(np.array(t).reshape(1,10000), np.array([r]), verbose=debug)
 
     def train_user(self, uid):
@@ -168,7 +170,8 @@ class NeuralModeler():
             self.c.execute_bulk('''UPDATE sorted SET c_rating=? WHERE uid=? AND arxiv_id=?''',(int(rating[0][0]), int(user), article))
             if self.c.rowcount() == 0:
                 self.c.execute_bulk('''INSERT INTO sorted (uid,arxiv_id,c_rating) 
-                    VALUES (?,?,?)''', (int(user), article, int(rating[0][0])))
+                    VALUES (?,?,?)''', (int(user), article, str(rating[0][0])))
+
         self.c.commit()
       
 

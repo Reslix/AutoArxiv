@@ -33,8 +33,9 @@ class TopicModeler():
         for id,text,token in self.articles:
              self.plaintext.append((id,token.split()))
 
-        if preload == 1:
+        if preload >= 1:
             self.dictionary = corpora.dictionary.Dictionary.load(os.path.join('lda','dictionary'))
+        if preload >= 2:   
             print("Assembling corpus from bag")
             self.corpus = [(id, self.dictionary.doc2bow(tokens)) for id, tokens in self.plaintext]
         else:
@@ -116,16 +117,18 @@ class TopicModeler():
             count = self.c.fetchall()[0][0]
             self.process_user_tscore(user)
 
-    def save_topic_representation(self):
+    def save_topic_representation(self,articles=None):
         """
         This used to use LDA until it was dropped without no
         noticable performance detriment.
         """
+        if articles == None:
+            articles = self.articles
         self.reverse_dict = {}
         for i in self.dictionary:
             self.reverse_dict[self.dictionary[i]] = i
 
-        for id, tokens in self.plaintext:
+        for id, tokens in articles:
             ldaed = self.process_tokens_to_topics(tokens)
             print("Updating topic representation of tokens for "+id)
             self.c.execute_bulk('''UPDATE articles SET topic_rep=? WHERE arxiv_id=?;''',

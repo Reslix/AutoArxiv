@@ -30,15 +30,14 @@ one_shot = True
 fetch_many = False
 
 if fetch_many:
-    m.fetch_missing(15000)
+    m.fetch_missing(1000)
     m.update_tfidf()
     m.update_networks()
     m.process_all_users(all=1)
-    fetch_many = False
     
 if one_shot:
     m.clear_current()
-    c.execute('''SELECT arxiv_id from articles''')
+    c.execute('''SELECT arxiv_id from articles ORDER BY date DESC LIMIT 100''')
     a = list(c.fetchall())
     for (i,) in a:
         c.execute_bulk('''INSERT INTO current (arxiv_id) VALUES (?)''', (i,))
@@ -53,11 +52,12 @@ while True:
             e.receive_emails()
             updated = True
 
-        if '0100' <= now <= '0130' and trained == False:
+        if '0700' <= now <= '0730' and trained == False:
             print("Updating topics and term frequency index...this will take a while")
             m.update_tfidf()
             print("Updating all ANN models")
             m.update_networks()
+            m.process_all_users(all=1)
             trained = True
 
         #This part does the new article fetching
@@ -68,10 +68,11 @@ while True:
             updated = False
             print('Fetching')
             trained = False
-            if not one_shot:
+            if not (one_shot or fetch_many):
                 m.clear_current()
             else:
                 one_shot = False
+                fetch_many = False
             m.clear_sorted()
             print("Fetching new links...")
             f.fetch_links(itert=10)
@@ -80,14 +81,15 @@ while True:
             f.pdf_to_txt()
             print("Storing articles...")
             f.tokenize_and_save()
-
             #This part will fetch ratings on the new articles. 
             c.execute("""SELECT * FROM current""")
-            current = list(c.fetchall())
+            current = [x for (x,) in list(c.fetchall())]
+            print("Updating current word representations")
+            m.assign_topics(current)
             print("Sorting new articles")
             m.process_all_users(all=0)
             articles = {}
-            for (article,) in current:
+            for article in current:
                 c.execute('''SELECT uid,c_rating FROM sorted WHERE arxiv_id=?''', (article,))
                 for user,rating in c.fetchall():
                     c.execute('''SELECT title,url FROM articles WHERE arxiv_id=?''', (article,))

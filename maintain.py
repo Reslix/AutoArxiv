@@ -121,6 +121,15 @@ def update_tfidf():
 	t.process_all_users()
 	t.save_topic_representation()
 
+def assign_topics(articles):
+	t = TopicModeler(preload=1, connector=c)
+	t.initialize()
+	temp_articles = []
+	for article in articles:
+		c.execute('''SELECT token FROM articles WHERE arxiv_id=?''', (article,))
+		temp_articles.append((article,c.fetchone()[0].split()))
+	t.save_topic_representation(articles=temp_articles)
+
 def update_networks():
 	c.execute('''UPDATE preferences SET trained=0''')
 	n = NeuralModeler(connector=c)
