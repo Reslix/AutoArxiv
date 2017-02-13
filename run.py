@@ -26,7 +26,7 @@ fetched = False
 trained = False
 ldaed = False
 updated = False
-one_shot = True
+one_shot = False
 fetch_many = False
 
 if fetch_many:
@@ -75,7 +75,7 @@ while True:
                 fetch_many = False
             m.clear_sorted()
             print("Fetching new links...")
-            f.fetch_links(itert=10)
+            f.fetch_links(itert=100)
             print("Downloading articles...")
             f.fetch_pdfs()
             f.pdf_to_txt()

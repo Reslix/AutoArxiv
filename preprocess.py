@@ -27,10 +27,10 @@ class TopicModeler():
         self.c = connector
         swords = stop_words.get_stop_words('en')
         print("Loading text from db")
-        self.c.execute('''SELECT arxiv_id, text, token FROM articles''')
+        self.c.execute('''SELECT arxiv_id, token FROM articles''')
         self.articles = self.c.fetchall()
         print("Separating text")
-        for id,text,token in self.articles:
+        for id,token in self.articles:
              self.plaintext.append((id,token.split()))
 
         if preload >= 1:
@@ -122,6 +122,8 @@ class TopicModeler():
         This used to use LDA until it was dropped without no
         noticable performance detriment.
         """
+        self.dictionary.filter_extremes(keep_n=200000)
+        self.dictionary.compactify()
         if articles == None:
             articles = self.articles
         self.reverse_dict = {}
