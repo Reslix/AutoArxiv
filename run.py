@@ -9,13 +9,16 @@ import maintain as m
 import argparse
 import sqlite3
 import time
+import sys
 """
 Runtime mode:
 
 Fetches new papers. 
 RUNS FOREVER
 """
-
+log = open('AutoArxiv.log','a')
+old = sys.stdout
+sys.stdout = log
 c = m.c
 f = Fetcher(c)
 e = Emailer(c)
@@ -44,17 +47,22 @@ if one_shot:
     c.commit()
 
 while True:
-    
         now = datetime.now().strftime('%H%M')
 
-        if '0400' <= now <= '0430' and updated == False:
+        if '2300' <= now <= '2359':
+            quit()
+
+        if updated == False:
             print('updating emails')
             e.receive_emails()
             updated = True
 
         if '0700' <= now <= '0730' and trained == False:
             print("Updating topics and term frequency index...this will take a while")
-            m.update_tfidf()
+            try:
+                m.update_tfidf()
+            except MemoryError:
+                pass
             print("Updating all ANN models")
             m.update_networks()
             m.process_all_users(all=1)
@@ -64,7 +72,7 @@ while True:
         if '0500' <= now <= '0630' and fetched == True:
             fetched = False
 
-        if ('0630' <= now <= '700' and fetched == False) or one_shot:
+        if ('0630' <= now <= '0700' and fetched == False) or one_shot:
             updated = False
             print('Fetching')
             trained = False
@@ -111,3 +119,5 @@ while True:
 
         print("Sleeping for 5 minutes")
         time.sleep(300)
+sys.stdout = old
+log.close()

@@ -56,7 +56,7 @@ class Emailer():
         message = message + """\n\nTo update your ratings for an article, send a new email to the server with the
                                 listing formatted as seen above, with new ratings replacing the old ones, and remove
                                 rows that you do not want to be stored as a preference. Enclose
-                                text body in double paretheses (()) to assist with email parsing."""
+                                text body in double parentheses (()) to assist with email parsing."""
 
         self.server.sendmail(self.email,email, msg.as_string())
         print("Sent listing to " + email)
@@ -77,6 +77,7 @@ class Emailer():
         self.mail.select('inbox')
         self.rawmessage = []
         retcode, data = self.mail.search(None, '(UNSEEN)')
+
         for num in data[0].split():
             typ, data = self.mail.fetch(num,'(RFC822)')
             msg = email.message_from_string(str(data[0][1]))
@@ -91,13 +92,12 @@ class Emailer():
             sender = sender[1:-1]
             commands = re.search('\(\(.*?\)\)',message)
             if commands != None:
-                commands = commands.group()[2:-2].split('\|\|')
+                commands = commands.group()[2:-2].split('||')
+                print(commands)
                 for i in range(len(commands)):
-                    commands[i] = commands[i].split()
+                    commands[i] = commands[i].split(',')
                     if len(commands[i]) >= 4:
                         for x in range(len(commands[i])):
                             commands[i][x].strip() 
-                            commands[i][x] = commands[i][x].replace(',','')
                         m.set_user_rating(commands[i][0],sender,commands[i][3])
-
         self.mail.close()

@@ -102,7 +102,7 @@ def set_user_ratings(l):
 def set_user_rating(arxivid,user,rating):
 	c.execute('''SELECT uid FROM users WHERE email=?''', (user,))
 	uid = c.fetchone()[0]
-	print("Updating ratings for user " + str(uid))
+	print("Updating ratings for user ", str(uid), str(arxivid),str(rating))
 	c.execute('''UPDATE preferences SET c_rating=? WHERE uid=? AND arxiv_id=?''',(rating,uid,arxivid))
 	if c.rowcount() == 0:
 		c.execute('''INSERT INTO preferences (uid,arxiv_id,c_rating) 
