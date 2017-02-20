@@ -49,7 +49,7 @@ if one_shot:
 while True:
         now = datetime.now().strftime('%H%M')
 
-        if '2300' <= now <= '2359':
+        if trained == True:
             quit()
 
         if updated == False:
