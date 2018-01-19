@@ -1,0 +1,31 @@
+I'm going to be refactoring this project to be more extensible. Right now, making any changes requires touching
+way too many components, so I'm going to apply some software engineering skills I acquired over the summer
+to rectify the problems.
+
+The current design relies on the run file to know everything that is going on in the other files, without
+using as general an interface as possible. The easiest package to refactor is the database connector. We want to remove
+the need for any of the individual packages to create database queries and instead have the connector perform the
+necessary processes.
+
+The second package to refactor is the data accessor, which fetches the necessary information from Arxiv. This will be
+tricky, as we will have to restructure the article database. Since the bulk of the data we will be missing is
+article metadata, we just need to re-download that from a mirror. Since we are specifically interested in articles
+from Arxiv.org, we do not need to worry about compatibility with other sources. Despite this, there should
+still be a separation of the Arxiv specific metadata and the text we care about.
+
+There will be a data provider specific for Arxiv that transforms the text into data that can be used by the model.
+
+The utilities that perform the intermediary steps will be separately included.
+
+The third major package will be the model interface.
+
+    Specifically, our model contains the functions that train and predict ratings of articles, which are received by
+    the coordinator for whatever it does
+
+The fourth major package will attempt to redo the relay.py, by doing email properly. This should be pretty
+straightforward, and doesn't necessarily have to be redone immediately.
+
+The final major component is the coordinator, which well, coordinates.
+
+Scratch that, the real final component is a Django integration, because I'm done with manually managing the email stuff.
+Django has email class wrappers that would be very useful
