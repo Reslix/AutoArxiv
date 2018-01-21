@@ -23,9 +23,6 @@ class DataConnector:
         self.articles = []
         self.mirror_list = ['export', 'lanl', 'es', 'in', 'de', 'cn']
 
-    def clear_articles(self):
-        Article.objects.all().delete()
-
     def encode_feedparser_dict(self, d):
         """
         *** Directly lifted this from Arxiv Sanity Preserver fetch_paperse.py, by Andrej Kaparthy***
@@ -56,7 +53,7 @@ class DataConnector:
 
     def deserialize_article(self, entry):
         links = [link['href'] for link in entry['links'] if link['type'] == 'application/pdf']
-        categories = [Category.objects.get_or_create(name=x)[0] for x in entry['tags']]
+        categories = [Category.objects.get_or_create(name=x['term'])[0] for x in entry['tags']]
         authors = [Author.objects.get_or_create(name=x['name'])[0] for x in entry['authors']]
 
         article = Article.objects.get_or_create(shortid=entry['shortid'])[0]
@@ -107,8 +104,12 @@ class DataConnector:
             else:
                 iters = min(self.number - number, iter_step)
             end = start + iters + 1
-            base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories, start,
-                                                                                                    iters)  # Keeping it this way to save energy.
+            if query == 'all':
+                base_query = 'search_query={0}&sortBy=lastUpdatedDate&start={1}&max_results={2}'.format(categories,
+                                                                                                        start,
+                                                                                                        iters)  # Keeping it this way to save energy.
+            else:
+                base_query = 'id_list={0}&soryBy=lastUpdatedDate&start=0&max_results=1'.format(query)
             url = base_url + base_query
             with urllib.request.urlopen(url) as response:
                 parsed = feedparser.parse(response)
@@ -164,7 +165,7 @@ class DataConnector:
         numok = 0
         numtot = 0
         mirror_index = 0
-        have = set(os.listdir(os.path.join(cwd,'pdf')))  # get list of all pdfs we already have
+        have = set(os.listdir(os.path.join(cwd, 'pdf')))  # get list of all pdfs we already have
         for article in self.articles:
             numtot += 1
             print(numtot)
@@ -210,7 +211,7 @@ class DataConnector:
         cwd = os.getcwd()
         have = set(os.listdir(os.path.join(cwd, 'txt')))
         for article in self.articles:
-            full_txtpath = os.path.join(cwd,'txt', article.txtname)
+            full_txtpath = os.path.join(cwd, 'txt', article.txtname)
             full_pdfpath = os.path.join(cwd, 'pdf', article.pdfname)
             if not article.txtname in have:
                 print('Converting to text:', article.title)
@@ -222,7 +223,7 @@ class DataConnector:
             else:
                 print('Already have ', article.txtname)
 
-    def save(self):
+    def save(self, add_new=True):
         """
         For each article in self.articles, get the plaintext, tokenize it, and save everything into
         the sqlite databse. Thus, memory is somewhat conserved. If the topic model exists, then
@@ -237,5 +238,6 @@ class DataConnector:
                     text = f.read()
                     article.text = text
                     article.save()
-                    new_article = NewArticle(article=article)
-                    new_article.save()
+                    if add_new:
+                        new_article = NewArticle(article=article)
+                        new_article.save()

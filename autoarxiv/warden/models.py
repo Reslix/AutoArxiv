@@ -61,17 +61,10 @@ class Article(models.Model):
 
 
 class Author(models.Model):
-    name = models.CharField(max_length=64)
-    email = models.EmailField()
+    name = models.CharField(max_length=64, unique=True)
 
     def set_name(self, name):
         self.name = name
-
-    def set_email(self, email):
-        self.email = email
-
-    class Meta:
-        unique_together = ['name', 'email']
 
 
 class Category(models.Model):
