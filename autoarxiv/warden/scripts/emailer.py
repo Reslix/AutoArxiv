@@ -28,6 +28,9 @@ def send_listing(e_mail, listing):
                                 in the same way.
                                 
                                 Please make sure to use of the full scale range in your ratings library to help the ML aspects.
+                                
+                                If new users want to subscribe, they should email this address with SUBSCRIBE as the subject, 
+                                and have <email>, <name> in the first line of the body.
                                 """
 
     # len(listing-3) because of the extra header stuff we put in
@@ -51,7 +54,7 @@ def receive_emails():
     for num in data[0].split():
         typ, data = mail.fetch(num, '(RFC822)')
         msg = email.message_from_bytes(data[0][1])
-        typ, data = mail.store(num, '+FLAGS', '\\Seen')
+        #typ, data = mail.store(num, '+FLAGS', '\\Seen')
         rawmessage.append(msg)
 
     for message in rawmessage:
@@ -113,5 +116,22 @@ def receive_emails():
                             article = d.articles[0]
                             arating = ArticleRating(member=member, article=article, rating=int(line[1]))
                         arating.save()
-
+            elif subject == 'SUBSCRIBE':
+                body = payload.split('\n')[0].split(',')
+                if len(Member.objects.all().filter(name=body[1], email=body[0])) == 0:
+                    member = Member(name=body[1], email=body[0])
+                    member.save()
+                    send_mail('You have subscribed!', """                            To update ratings for an article or author, send an email (not a reply!) to this sender address with
+                                    ARTICLE or AUTHOR in the subject line. 
+                                    
+                                    For articles, list line-by-line the article Arxiv ID as it came in the listing and an
+                                    integer rating between 1 and 5, separated by a comma. If the article is not currently
+                                    in the library it will be added.
+                                    
+                                    For authors, do the same with the author's name and have the rating added
+                                    in the same way.
+                                    
+                                    Please make sure to use of the full scale range in your ratings library to help the ML aspects.""",
+                              settings.EMAIL_HOST_USER,
+                              [sender])
     mail.close()
